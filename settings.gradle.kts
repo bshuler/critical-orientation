@@ -35,8 +35,6 @@ stonecutter {
     mc("1.19.4", "fabric", "forge")
     // 1.18.2 - Fabric + Forge
     mc("1.18.2", "fabric", "forge")
-
-    active("1.21.4-fabric")
 }
 
 rootProject.name = "critical-orientation"
