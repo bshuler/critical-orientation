@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, master, test, dev]
+    branches: [main, master, test, dev, 'claude/**']
   pull_request:
     branches: [main, master]
 
@@ -67,28 +67,44 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      # Create a test release on main branch pushes
+      # Create a test release on pushes (main/master/claude branches)
+      - name: Set release tag name
+        if: github.event_name == 'push'
+        id: release_tag
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "master" ]]; then
+            echo "TAG_NAME=test-build" >> $GITHUB_OUTPUT
+            echo "RELEASE_NAME=Test Build (Latest)" >> $GITHUB_OUTPUT
+          else
+            # Sanitize branch name for tag (replace / with -)
+            SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/\//-/g')
+            echo "TAG_NAME=dev-${SAFE_BRANCH}" >> $GITHUB_OUTPUT
+            echo "RELEASE_NAME=Dev Build: ${BRANCH_NAME}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Delete existing test release
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+        if: github.event_name == 'push'
         continue-on-error: true
         run: |
-          gh release delete test-build --yes || true
-          git push origin :refs/tags/test-build || true
+          gh release delete ${{ steps.release_tag.outputs.TAG_NAME }} --yes || true
+          git push origin :refs/tags/${{ steps.release_tag.outputs.TAG_NAME }} || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create test release
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: test-build
-          name: "Test Build (Latest)"
+          tag_name: ${{ steps.release_tag.outputs.TAG_NAME }}
+          name: ${{ steps.release_tag.outputs.RELEASE_NAME }}
           body: |
-            ## Test Build - ${{ github.sha }}
+            ## ${{ steps.release_tag.outputs.RELEASE_NAME }}
 
             **This is an automated test build for testing purposes.**
 
-            Built from commit: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            - Branch: `${{ github.ref_name }}`
+            - Commit: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
 
             ### Available JARs
 
@@ -110,7 +126,7 @@ jobs:
             4. Report any issues!
 
             ---
-            *This release will be replaced on the next push to main.*
+            *This release will be replaced on the next push to this branch.*
           files: release-jars/*.jar
           prerelease: true
           draft: false
