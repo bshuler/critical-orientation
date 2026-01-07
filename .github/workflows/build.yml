@@ -25,15 +25,36 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Build all versions and loaders
+        run: ./gradlew chiseledBuild
 
       - name: Run tests
         run: ./gradlew test
 
-      - name: Upload build artifacts
+      - name: Upload Fabric artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: critical-orientation-${{ github.sha }}
-          path: build/libs/*.jar
+          name: critical-orientation-fabric-${{ github.sha }}
+          path: |
+            versions/*-fabric/build/libs/*.jar
+            !versions/*-fabric/build/libs/*-sources.jar
           retention-days: 14
+
+      - name: Upload NeoForge artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: critical-orientation-neoforge-${{ github.sha }}
+          path: |
+            versions/*-neoforge/build/libs/*.jar
+            !versions/*-neoforge/build/libs/*-sources.jar
+          retention-days: 14
+
+      - name: Upload Forge artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: critical-orientation-forge-${{ github.sha }}
+          path: |
+            versions/*-forge/build/libs/*.jar
+            !versions/*-forge/build/libs/*-sources.jar
+          retention-days: 14
+          if-no-files-found: ignore

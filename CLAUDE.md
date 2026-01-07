@@ -2,15 +2,20 @@
 
 ## Project Overview
 
-Critical Orientation is a Minecraft 1.21.4 client-side mod built with the Fabric modding framework. It allows players to snap their facing direction to the nearest cardinal or intercardinal point (N, NE, E, SE, S, SW, W, NW) with a keybind. This is primarily useful for precise ice boat placement.
+Critical Orientation is a multi-loader, multi-version Minecraft client-side mod. It allows players to snap their facing direction to the nearest cardinal or intercardinal point (N, NE, E, SE, S, SW, W, NW) with a keybind. This is primarily useful for precise ice boat placement.
+
+## Supported Platforms
+
+| Minecraft Version | Fabric | NeoForge | Forge |
+|-------------------|--------|----------|-------|
+| 1.21.4 | ✅ | ✅ | ❌ |
+| 1.20.1 | ✅ | ❌ | ✅ |
 
 ## Tech Stack
 
 - **Language**: Java 21
-- **Build System**: Gradle 8.11.1 with Fabric Loom 1.9
-- **Mod Framework**: Fabric (for Minecraft 1.21.4)
-- **Dependencies**: Fabric API 0.119.2+1.21.4, Fabric Loader 0.16.10
-- **Mappings**: Yarn 1.21.4+build.8
+- **Build System**: Gradle 8.11.1 with Stonecraft + Stonecutter
+- **Multi-Loader**: Stonecraft (combines Architectury + Stonecutter)
 - **Testing**: JUnit 5
 
 ## Repository Structure
@@ -18,114 +23,125 @@ Critical Orientation is a Minecraft 1.21.4 client-side mod built with the Fabric
 ```
 critical-orientation/
 ├── .github/workflows/
-│   ├── build.yml             # CI build on push/PR
-│   └── release.yml           # Publish to CurseForge/Modrinth on tag
-├── build.gradle              # Gradle build configuration with Fabric Loom
-├── gradle.properties         # Version configuration for mod and dependencies
-├── settings.gradle           # Gradle plugin repositories
-├── gradlew / gradlew.bat     # Gradle wrapper scripts
-├── LICENSE                   # CC0-1.0 license
-├── README.md                 # User-facing documentation
-├── CLAUDE.md                 # AI assistant guidance (this file)
-├── PLAN.md                   # Modernization roadmap
+│   ├── build.yml                 # CI build for all loaders
+│   └── release.yml               # Publish to CurseForge/Modrinth on tag
+├── build.gradle.kts              # Stonecraft build configuration
+├── settings.gradle.kts           # Stonecraft/Stonecutter setup
+├── stonecutter.gradle.kts        # Active version configuration
+├── gradle.properties             # Mod metadata
+├── LICENSE                       # CC0-1.0 license
+├── README.md                     # User-facing documentation
+├── CLAUDE.md                     # AI assistant guidance (this file)
+├── PLAN.md                       # Modernization roadmap
+├── versions/                     # Generated version-specific builds
+│   ├── 1.21.4-fabric/
+│   ├── 1.21.4-neoforge/
+│   ├── 1.20.1-fabric/
+│   └── 1.20.1-forge/
 └── src/
     ├── client/java/net/critical/orientation/
-    │   ├── OrientationClient.java    # Client mod entry point
-    │   └── OrientationKeyBind.java   # Keybinding and direction snapping logic
+    │   ├── OrientationClient.java    # Loader-specific entry point
+    │   └── OrientationKeyBind.java   # Keybinding (loader-aware)
+    ├── main/java/net/critical/orientation/
+    │   └── OrientationCommon.java    # Shared logic (all loaders)
     ├── main/resources/
-    │   ├── fabric.mod.json           # Mod metadata and dependencies
+    │   ├── fabric.mod.json           # Fabric metadata
+    │   ├── META-INF/
+    │   │   ├── mods.toml             # Forge metadata
+    │   │   └── neoforge.mods.toml    # NeoForge metadata
     │   └── assets/orientation/lang/
     │       └── en_us.json            # English translations
     └── test/java/net/critical/orientation/
-        └── OrientationKeyBindTest.java  # Unit tests for yaw calculations
+        └── OrientationKeyBindTest.java  # Unit tests
 ```
 
 ## Key Components
 
-### OrientationClient.java (Entry Point)
-- Implements `ClientModInitializer` interface
-- Registers the keybind handler on client initialization
+### OrientationCommon.java (Shared Logic)
+- Contains loader-agnostic yaw calculation methods
+- **`normalizeHeadYaw(double yaw)`**: Normalizes yaw to -180 to 180 range
+- **`roundYaw(double yaw)`**: Rounds yaw to nearest 45-degree increment
+- **`snapYaw(double yaw)`**: Combines normalize and round
 
-### OrientationKeyBind.java (Core Logic)
-- Registers a keybind (default: backslash `\` key) in the "Critical Orientation" category
-- Listens for key press events via `ClientTickEvents.END_CLIENT_TICK`
-- **`normalizeHeadYaw(double yaw)`**: Normalizes yaw angle to -180 to 180 range
-- **`roundYaw(double yaw)`**: Rounds yaw to nearest 45-degree increment (cardinal/intercardinal)
-- Updates player yaw, head yaw, and body yaw on key press
+### OrientationClient.java (Entry Point)
+- Uses Stonecutter preprocessor directives for loader-specific code
+- Fabric: Implements `ClientModInitializer`
+- NeoForge/Forge: Uses `@Mod` annotation with event bus
+
+### OrientationKeyBind.java (Keybinding)
+- Registers backslash (`\`) key for direction snapping
+- Loader-specific event registration via preprocessor
 
 ## Build Commands
 
 ```bash
-# Build the mod JAR
-./gradlew build
+# Build all versions and loaders
+./gradlew chiseledBuild
+
+# Build specific version
+./gradlew :1.21.4-fabric:build
 
 # Run tests
 ./gradlew test
 
-# Clean build artifacts
-./gradlew clean
-
-# Generate IDE configurations
-./gradlew genSources          # Generate Minecraft sources for IDE
-
-# Run Minecraft client with mod
+# Run Minecraft client (active version)
 ./gradlew runClient
+
+# Publish to CurseForge/Modrinth
+./gradlew chiseledPublishMods
 ```
 
-Built JARs are output to `build/libs/critical-orientation-<version>.jar`
+## Stonecutter Preprocessor
 
-## Development Workflow
+The project uses Stonecutter for conditional compilation:
 
-1. Clone the repository
-2. Run `./gradlew genSources` to generate Minecraft source mappings
-3. Import into IDE (IntelliJ IDEA recommended for Fabric mods)
-4. Make changes to source files in `src/client/java/`
-5. Run tests with `./gradlew test`
-6. Test in-game with `./gradlew runClient`
-7. Build release JAR with `./gradlew build`
+```java
+//? if fabric {
+import net.fabricmc.api.ClientModInitializer;
+//?} elif neoforge {
+/*import net.neoforged.fml.common.Mod;
+*///?}
+```
+
+- Active version set in `stonecutter.gradle.kts`
+- Comments are uncommented/commented during build
+- Supports version comparisons: `//? if >=1.20`
 
 ## Version Configuration
 
-All versions are managed in `gradle.properties`:
-- `mod_version`: Current mod version (e.g., 2.0.0)
-- `minecraft_version`: Target Minecraft version
-- `fabric_version`: Fabric API version
-- `loader_version`: Fabric Loader version
-- `yarn_mappings`: Yarn deobfuscation mappings
-
-## Code Conventions
-
-- Package namespace: `net.critical.orientation`
-- Mod ID: `orientation`
-- Use Fabric API event callbacks (`ClientTickEvents.END_CLIENT_TICK`)
-- Keybinds use `KeyBindingHelper.registerKeyBinding()` pattern
-- Client-side code in `src/client/java/` (uses split source sets)
-- Tests in `src/test/java/` using JUnit 5
+Managed in `gradle.properties`:
+- `mod.id`: Mod identifier (`orientation`)
+- `mod.name`: Display name
+- `mod.version`: Current version (e.g., 2.0.0)
+- `mod.group`: Package group (`net.critical`)
 
 ## CI/CD Pipeline
 
-### Build Workflow (`.github/workflows/build.yml`)
-- Triggers on push to main/test/dev branches and PRs
-- Runs Gradle build and tests
-- Uploads build artifacts
+### Build Workflow
+- Triggers on push to main/test/dev and PRs
+- Runs `./gradlew chiseledBuild` for all loaders
+- Uploads artifacts per loader type
 
-### Release Workflow (`.github/workflows/release.yml`)
+### Release Workflow
 - Triggers on version tags (e.g., `v2.0.0`)
-- Publishes to CurseForge and Modrinth
-- Creates GitHub release
+- Runs `./gradlew chiseledPublishMods`
+- Creates GitHub release with all JARs
 
 ### Required Secrets
 - `CURSEFORGE_ID` / `CURSEFORGE_TOKEN`
 - `MODRINTH_ID` / `MODRINTH_TOKEN`
 
-## Important Notes
+## Code Conventions
 
-- This is a **client-side only** mod (no server component)
-- Requires Fabric Loader >= 0.16.0 and Java >= 21
-- Uses modern Fabric API patterns (KeyBindingHelper, ClientTickEvents)
+- Package namespace: `net.critical.orientation`
+- Mod ID: `orientation`
+- Shared logic in `OrientationCommon.java`
+- Use Stonecutter `//? if loader` for loader-specific code
+- Tests use JUnit 5 with parameterized tests
 
 ## Distribution
 
-- Available on [CurseForge](https://www.curseforge.com/minecraft/mc-mods/critical-orientation)
-- GitHub releases for direct downloads
+- [CurseForge](https://www.curseforge.com/minecraft/mc-mods/critical-orientation)
+- [Modrinth](https://modrinth.com/mod/critical-orientation)
+- GitHub releases
 - Licensed under CC0-1.0 (public domain)

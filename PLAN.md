@@ -300,17 +300,17 @@ public class OrientationKeyBind {
 6. [x] CI/CD pipeline setup
 7. [x] Testing framework implementation
 
-### Stage 2: Multi-Loader (Next)
-8. [ ] Stonecraft/Architectury project structure
-9. [ ] Platform abstraction layer development
-10. [ ] Fabric loader module creation
-11. [ ] NeoForge loader module creation
-12. [ ] Forge loader module (1.20.1 support)
-13. [ ] CI/CD multi-loader build configuration
+### Stage 2: Multi-Loader ✅ COMPLETED
+8. [x] Stonecraft/Architectury project structure
+9. [x] Platform abstraction layer development (OrientationCommon.java)
+10. [x] Fabric loader module creation
+11. [x] NeoForge loader module creation
+12. [x] Forge loader module (1.20.1 support)
+13. [x] CI/CD multi-loader build configuration
 
-### Stage 3: Multi-Version
-14. [ ] Stonecutter version management configuration
-15. [ ] 1.20.x support addition
+### Stage 3: Multi-Version (Included in Stage 2)
+14. [x] Stonecutter version management configuration
+15. [x] 1.20.1 support addition (Fabric + Forge)
 16. [ ] 1.19.x support addition
 17. [ ] 1.18.x support addition
 18. [ ] Comprehensive version/loader combination testing
