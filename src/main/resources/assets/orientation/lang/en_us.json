@@ -1,3 +1,4 @@
 {
-  "key.toggle.orientation": "Critical Orientation Snap to direction"
+  "category.orientation.main": "Critical Orientation",
+  "key.orientation.snap": "Snap to Direction"
 }

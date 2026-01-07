@@ -4,34 +4,35 @@
   "version": "${version}",
 
   "name": "Critical Orientation",
-  "description": "Snaps player direction to cardinal directions",
+  "description": "Snaps player direction to cardinal and intercardinal directions for precise ice boat placement",
   "authors": [
     "TheCritic"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://fabricmc.net/"
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/critical-orientation",
+    "sources": "https://github.com/bshuler/critical-orientation"
   },
 
   "license": "CC0-1.0",
-  "icon": "assets/modid/cardinal_directions.png",
+  "icon": "assets/orientation/icon.png",
 
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
-    "main": [
-      "net.critical.orientation.Orientation"
+    "client": [
+      "net.critical.orientation.OrientationClient"
     ]
   },
-  "mixins": [
-  ],
+
+  "mixins": [],
 
   "depends": {
-    "fabricloader": ">=0.11.3",
-    "fabric": "*",
-    "minecraft": "1.17.x",
-    "java": ">=16"
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.4",
+    "java": ">=21"
   },
+
   "suggests": {
-    "flamingo": "*"
+    "modmenu": "*"
   }
 }
