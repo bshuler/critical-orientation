@@ -1,37 +1,38 @@
 {
   "schemaVersion": 1,
-  "id": "orientation",
-  "version": "${version}",
+  "id": "${mod_id}",
+  "version": "${mod_version}",
 
-  "name": "Critical Orientation",
-  "description": "Snaps player direction to cardinal directions",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
   "authors": [
     "TheCritic"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://fabricmc.net/"
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/critical-orientation",
+    "sources": "https://github.com/bshuler/critical-orientation"
   },
 
   "license": "CC0-1.0",
-  "icon": "assets/modid/cardinal_directions.png",
+  "icon": "assets/orientation/icon.png",
 
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
-    "main": [
-      "net.critical.orientation.Orientation"
+    "client": [
+      "net.critical.orientation.OrientationClient"
     ]
   },
-  "mixins": [
-  ],
+
+  "mixins": [],
 
   "depends": {
-    "fabricloader": ">=0.11.3",
-    "fabric": "*",
-    "minecraft": "1.17.x",
-    "java": ">=16"
+    "fabricloader": ">=0.14.0",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_dependency}",
+    "java": ">=${java_version}"
   },
+
   "suggests": {
-    "flamingo": "*"
+    "modmenu": "*"
   }
 }

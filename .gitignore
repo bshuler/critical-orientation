@@ -1,25 +1,39 @@
-# gradle
-
+# Gradle
 .gradle/
 build/
 out/
 classes/
 
-# idea
-
+# IntelliJ IDEA
 .idea/
 *.iml
 *.ipr
 *.iws
 
-# vscode
-
+# Eclipse
 .settings/
-.vscode/
 bin/
 .classpath
 .project
 
-# fabric
+# VS Code
+.vscode/
 
+# Fabric / Minecraft
 run/
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local environment
+.env
+.env.local
+*.local
+
+# Loom
+remappedSrc/
+*-refmap.json
