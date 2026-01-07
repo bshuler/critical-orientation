@@ -31,6 +31,14 @@ jobs:
       - name: Run tests
         run: ./gradlew test
 
+      # Collect all JARs for release
+      - name: Collect build artifacts
+        run: |
+          mkdir -p release-jars
+          # Find and copy all non-sources JARs
+          find versions -name "*.jar" ! -name "*-sources.jar" ! -name "*-dev.jar" -path "*/build/libs/*" -exec cp {} release-jars/ \;
+          ls -la release-jars/
+
       - name: Upload Fabric artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -58,3 +66,53 @@ jobs:
             !versions/*-forge/build/libs/*-sources.jar
           retention-days: 14
           if-no-files-found: ignore
+
+      # Create a test release on main branch pushes
+      - name: Delete existing test release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        continue-on-error: true
+        run: |
+          gh release delete test-build --yes || true
+          git push origin :refs/tags/test-build || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create test release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: test-build
+          name: "Test Build (Latest)"
+          body: |
+            ## Test Build - ${{ github.sha }}
+
+            **This is an automated test build for testing purposes.**
+
+            Built from commit: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+
+            ### Available JARs
+
+            | Minecraft | Loader | File |
+            |-----------|--------|------|
+            | 1.21.4 | Fabric | `critical-orientation-1.21.4-fabric-*.jar` |
+            | 1.21.4 | NeoForge | `critical-orientation-1.21.4-neoforge-*.jar` |
+            | 1.20.1 | Fabric | `critical-orientation-1.20.1-fabric-*.jar` |
+            | 1.20.1 | Forge | `critical-orientation-1.20.1-forge-*.jar` |
+            | 1.19.4 | Fabric | `critical-orientation-1.19.4-fabric-*.jar` |
+            | 1.19.4 | Forge | `critical-orientation-1.19.4-forge-*.jar` |
+            | 1.18.2 | Fabric | `critical-orientation-1.18.2-fabric-*.jar` |
+            | 1.18.2 | Forge | `critical-orientation-1.18.2-forge-*.jar` |
+
+            ### Testing Instructions
+            1. Download the JAR for your Minecraft version and loader
+            2. Place in your `mods` folder
+            3. Launch Minecraft and test the `\` keybind
+            4. Report any issues!
+
+            ---
+            *This release will be replaced on the next push to main.*
+          files: release-jars/*.jar
+          prerelease: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
