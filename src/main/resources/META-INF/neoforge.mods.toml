@@ -1,28 +1,26 @@
 modLoader = "javafml"
-loaderVersion = "[4,)"
+loaderVersion = "${loader_version_range}"
 license = "CC0-1.0"
 issueTrackerURL = "https://github.com/bshuler/critical-orientation/issues"
 
 [[mods]]
-modId = "orientation"
-version = "${version}"
-displayName = "Critical Orientation"
-description = '''
-Snaps player direction to cardinal and intercardinal directions for precise ice boat placement.
-'''
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+description = '''${mod_description}'''
 authors = "TheCritic"
 displayURL = "https://www.curseforge.com/minecraft/mc-mods/critical-orientation"
 
-[[dependencies.orientation]]
+[[dependencies.${mod_id}]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21.0,)"
+versionRange = "${neoforge_version_range}"
 ordering = "NONE"
 side = "CLIENT"
 
-[[dependencies.orientation]]
+[[dependencies.${mod_id}]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21,1.22)"
+versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "CLIENT"

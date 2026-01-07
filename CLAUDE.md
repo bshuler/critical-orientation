@@ -10,6 +10,8 @@ Critical Orientation is a multi-loader, multi-version Minecraft client-side mod.
 |-------------------|--------|----------|-------|
 | 1.21.4 | ✅ | ✅ | ❌ |
 | 1.20.1 | ✅ | ❌ | ✅ |
+| 1.19.4 | ✅ | ❌ | ✅ |
+| 1.18.2 | ✅ | ❌ | ✅ |
 
 ## Tech Stack
 
@@ -37,7 +39,11 @@ critical-orientation/
 │   ├── 1.21.4-fabric/
 │   ├── 1.21.4-neoforge/
 │   ├── 1.20.1-fabric/
-│   └── 1.20.1-forge/
+│   ├── 1.20.1-forge/
+│   ├── 1.19.4-fabric/
+│   ├── 1.19.4-forge/
+│   ├── 1.18.2-fabric/
+│   └── 1.18.2-forge/
 └── src/
     ├── client/java/net/critical/orientation/
     │   ├── OrientationClient.java    # Loader-specific entry point

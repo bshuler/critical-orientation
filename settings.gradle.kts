@@ -27,8 +27,14 @@ stonecutter {
     }
 
     // Target versions and loaders
+    // Latest (1.21.4) - Fabric + NeoForge
     mc("1.21.4", "fabric", "neoforge")
+    // 1.20.1 - Fabric + Forge (last major Forge version before NeoForge split)
     mc("1.20.1", "fabric", "forge")
+    // 1.19.4 - Fabric + Forge
+    mc("1.19.4", "fabric", "forge")
+    // 1.18.2 - Fabric + Forge
+    mc("1.18.2", "fabric", "forge")
 
     vcsVersion = "1.21.4-fabric"
 }
