@@ -8,7 +8,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class OrientationKeyBindTest {
+class OrientationCommonTest {
 
     @Nested
     @DisplayName("normalizeHeadYaw")
@@ -17,19 +17,19 @@ class OrientationKeyBindTest {
         @Test
         @DisplayName("should return 0 for 0 input")
         void testZero() {
-            assertEquals(0, OrientationKeyBind.normalizeHeadYaw(0), 0.001);
+            assertEquals(0, OrientationCommon.normalizeHeadYaw(0), 0.001);
         }
 
         @Test
         @DisplayName("should return 0 for 360 input")
         void testFullRotation() {
-            assertEquals(0, OrientationKeyBind.normalizeHeadYaw(360), 0.001);
+            assertEquals(0, OrientationCommon.normalizeHeadYaw(360), 0.001);
         }
 
         @Test
         @DisplayName("should return 0 for -360 input")
         void testNegativeFullRotation() {
-            assertEquals(0, OrientationKeyBind.normalizeHeadYaw(-360), 0.001);
+            assertEquals(0, OrientationCommon.normalizeHeadYaw(-360), 0.001);
         }
 
         @ParameterizedTest
@@ -41,7 +41,7 @@ class OrientationKeyBindTest {
             "810, 90"
         })
         void testPositiveOverflow(double input, double expected) {
-            assertEquals(expected, OrientationKeyBind.normalizeHeadYaw(input), 0.001);
+            assertEquals(expected, OrientationCommon.normalizeHeadYaw(input), 0.001);
         }
 
         @ParameterizedTest
@@ -53,7 +53,7 @@ class OrientationKeyBindTest {
             "-810, -90"
         })
         void testNegativeOverflow(double input, double expected) {
-            assertEquals(expected, OrientationKeyBind.normalizeHeadYaw(input), 0.001);
+            assertEquals(expected, OrientationCommon.normalizeHeadYaw(input), 0.001);
         }
 
         @ParameterizedTest
@@ -67,7 +67,7 @@ class OrientationKeyBindTest {
             "-45, -45"
         })
         void testInRangeValues(double input, double expected) {
-            assertEquals(expected, OrientationKeyBind.normalizeHeadYaw(input), 0.001);
+            assertEquals(expected, OrientationCommon.normalizeHeadYaw(input), 0.001);
         }
     }
 
@@ -89,7 +89,7 @@ class OrientationKeyBindTest {
                 "-22.4, 0"
             })
             void testNorth(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
 
             @ParameterizedTest
@@ -101,7 +101,7 @@ class OrientationKeyBindTest {
                 "80, 90"
             })
             void testEast(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
 
             @ParameterizedTest
@@ -115,7 +115,7 @@ class OrientationKeyBindTest {
                 "-170, 180"
             })
             void testSouth(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
 
             @ParameterizedTest
@@ -127,7 +127,7 @@ class OrientationKeyBindTest {
                 "-80, -90"
             })
             void testWest(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
         }
 
@@ -144,7 +144,7 @@ class OrientationKeyBindTest {
                 "35, 45"
             })
             void testNortheast(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
 
             @ParameterizedTest
@@ -156,7 +156,7 @@ class OrientationKeyBindTest {
                 "125, 135"
             })
             void testSoutheast(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
 
             @ParameterizedTest
@@ -168,7 +168,7 @@ class OrientationKeyBindTest {
                 "-125, -135"
             })
             void testSouthwest(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
 
             @ParameterizedTest
@@ -180,7 +180,7 @@ class OrientationKeyBindTest {
                 "-35, -45"
             })
             void testNorthwest(double input, double expected) {
-                assertEquals(expected, OrientationKeyBind.roundYaw(input), 0.001);
+                assertEquals(expected, OrientationCommon.roundYaw(input), 0.001);
             }
         }
     }
@@ -200,8 +200,8 @@ class OrientationKeyBindTest {
             "750, 30"       // 750 -> 30 -> 45 (NE)
         })
         void testNormalizeAndRound(double input, double expected) {
-            double normalized = OrientationKeyBind.normalizeHeadYaw(input);
-            double rounded = OrientationKeyBind.roundYaw(normalized);
+            double normalized = OrientationCommon.normalizeHeadYaw(input);
+            double rounded = OrientationCommon.roundYaw(normalized);
             assertEquals(expected, rounded, 0.001);
         }
     }
