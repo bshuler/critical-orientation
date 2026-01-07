@@ -122,14 +122,14 @@ jobs:
 
             | Minecraft | Loader | File |
             |-----------|--------|------|
-            | 1.21.4 | Fabric | `critical-orientation-1.21.4-fabric-*.jar` |
-            | 1.21.4 | NeoForge | `critical-orientation-1.21.4-neoforge-*.jar` |
-            | 1.20.1 | Fabric | `critical-orientation-1.20.1-fabric-*.jar` |
-            | 1.20.1 | Forge | `critical-orientation-1.20.1-forge-*.jar` |
-            | 1.19.4 | Fabric | `critical-orientation-1.19.4-fabric-*.jar` |
-            | 1.19.4 | Forge | `critical-orientation-1.19.4-forge-*.jar` |
-            | 1.18.2 | Fabric | `critical-orientation-1.18.2-fabric-*.jar` |
-            | 1.18.2 | Forge | `critical-orientation-1.18.2-forge-*.jar` |
+            | 1.21.11 | Fabric | `orientation-fabric-*+mc1.21.11.jar` |
+            | 1.21.11 | NeoForge | `orientation-neoforge-*+mc1.21.11.jar` |
+            | 1.20.1 | Fabric | `orientation-fabric-*+mc1.20.1.jar` |
+            | 1.20.1 | Forge | `orientation-forge-*+mc1.20.1.jar` |
+            | 1.19.4 | Fabric | `orientation-fabric-*+mc1.19.4.jar` |
+            | 1.19.4 | Forge | `orientation-forge-*+mc1.19.4.jar` |
+            | 1.18.2 | Fabric | `orientation-fabric-*+mc1.18.2.jar` |
+            | 1.18.2 | Forge | `orientation-forge-*+mc1.18.2.jar` |
 
             ### Testing Instructions
             1. Download the JAR for your Minecraft version and loader

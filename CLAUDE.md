@@ -8,7 +8,7 @@ Critical Orientation is a multi-loader, multi-version Minecraft client-side mod.
 
 | Minecraft Version | Fabric | NeoForge | Forge |
 |-------------------|--------|----------|-------|
-| 1.21.4 | ✅ | ✅ | ❌ |
+| 1.21.11 | ✅ | ✅ | ❌ |
 | 1.20.1 | ✅ | ❌ | ✅ |
 | 1.19.4 | ✅ | ❌ | ✅ |
 | 1.18.2 | ✅ | ❌ | ✅ |
@@ -16,7 +16,7 @@ Critical Orientation is a multi-loader, multi-version Minecraft client-side mod.
 ## Tech Stack
 
 - **Language**: Java 21
-- **Build System**: Gradle 8.11.1 with Stonecraft + Stonecutter
+- **Build System**: Gradle 9.0 with Stonecraft + Stonecutter
 - **Multi-Loader**: Stonecraft (combines Architectury + Stonecutter)
 - **Testing**: JUnit 5
 
@@ -36,8 +36,8 @@ critical-orientation/
 ├── CLAUDE.md                     # AI assistant guidance (this file)
 ├── PLAN.md                       # Modernization roadmap
 ├── versions/                     # Generated version-specific builds
-│   ├── 1.21.4-fabric/
-│   ├── 1.21.4-neoforge/
+│   ├── 1.21.11-fabric/
+│   ├── 1.21.11-neoforge/
 │   ├── 1.20.1-fabric/
 │   ├── 1.20.1-forge/
 │   ├── 1.19.4-fabric/
@@ -85,7 +85,7 @@ critical-orientation/
 ./gradlew chiseledBuild
 
 # Build specific version
-./gradlew :1.21.4-fabric:build
+./gradlew :1.21.11-fabric:build
 
 # Run tests
 ./gradlew test
