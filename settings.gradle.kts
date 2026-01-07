@@ -22,7 +22,7 @@ stonecutter {
     kotlinController = true
     shared {
         fun mc(version: String, vararg loaders: String) {
-            for (loader in loaders) vers("$version-$loader", version)
+            for (loader in loaders) version("$version-$loader", version)
         }
 
         // Target versions and loaders
