@@ -95,10 +95,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug release info
+        if: github.event_name == 'push'
+        run: |
+          echo "Tag: ${{ steps.release_tag.outputs.TAG_NAME }}"
+          echo "Name: ${{ steps.release_tag.outputs.RELEASE_NAME }}"
+          echo "Files in release-jars:"
+          ls -la release-jars/ || echo "No release-jars directory"
+
       - name: Create test release
         if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.release_tag.outputs.TAG_NAME }}
           name: ${{ steps.release_tag.outputs.RELEASE_NAME }}
           body: |
@@ -133,5 +142,4 @@ jobs:
           files: release-jars/*.jar
           prerelease: true
           draft: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_unmatched_files: false
