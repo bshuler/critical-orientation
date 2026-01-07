@@ -36,7 +36,7 @@ stonecutter {
     // 1.18.2 - Fabric + Forge
     mc("1.18.2", "fabric", "forge")
 
-    vcsVersion = "1.21.4-fabric"
+    active("1.21.4-fabric")
 }
 
 rootProject.name = "critical-orientation"
