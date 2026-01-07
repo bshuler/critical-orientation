@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "${loader_version_range}"
+loaderVersion = "[40,)"
 license = "CC0-1.0"
 issueTrackerURL = "https://github.com/bshuler/critical-orientation/issues"
 
@@ -14,13 +14,13 @@ displayURL = "https://www.curseforge.com/minecraft/mc-mods/critical-orientation"
 [[dependencies.${id}]]
 modId = "forge"
 mandatory = true
-versionRange = "${forge_version_range}"
+versionRange = "[40,)"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.${id}]]
 modId = "minecraft"
 mandatory = true
-versionRange = "${minecraft_version_range}"
+versionRange = "[${minecraftVersion},)"
 ordering = "NONE"
 side = "CLIENT"
