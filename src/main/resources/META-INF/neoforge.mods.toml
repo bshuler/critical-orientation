@@ -4,21 +4,21 @@ license = "CC0-1.0"
 issueTrackerURL = "https://github.com/bshuler/critical-orientation/issues"
 
 [[mods]]
-modId = "${mod_id}"
-version = "${mod_version}"
-displayName = "${mod_name}"
-description = '''${mod_description}'''
+modId = "${id}"
+version = "${version}"
+displayName = "${name}"
+description = '''${description}'''
 authors = "TheCritic"
 displayURL = "https://www.curseforge.com/minecraft/mc-mods/critical-orientation"
 
-[[dependencies.${mod_id}]]
+[[dependencies.${id}]]
 modId = "neoforge"
 type = "required"
 versionRange = "${neoforge_version_range}"
 ordering = "NONE"
 side = "CLIENT"
 
-[[dependencies.${mod_id}]]
+[[dependencies.${id}]]
 modId = "minecraft"
 type = "required"
 versionRange = "${minecraft_version_range}"

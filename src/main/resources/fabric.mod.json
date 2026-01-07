@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "${mod_id}",
-  "version": "${mod_version}",
+  "id": "${id}",
+  "version": "${version}",
 
-  "name": "${mod_name}",
-  "description": "${mod_description}",
+  "name": "${name}",
+  "description": "${description}",
   "authors": [
     "TheCritic"
   ],
@@ -28,8 +28,8 @@
   "depends": {
     "fabricloader": ">=0.14.0",
     "fabric-api": "*",
-    "minecraft": "${minecraft_dependency}",
-    "java": ">=${java_version}"
+    "minecraft": "${minecraftVersion}",
+    "java": ">=17"
   },
 
   "suggests": {
