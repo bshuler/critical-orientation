@@ -25,14 +25,40 @@ stonecutter {
             for (loader in loaders) version("$version-$loader", version)
         }
 
-        // Target versions and loaders
-        // Latest (1.21.11) - Fabric + NeoForge
-        mc("1.21.11", "fabric", "neoforge")
-        // 1.20.1 - Fabric + Forge (last major Forge version before NeoForge split)
-        mc("1.20.1", "fabric", "forge")
-        // 1.19.4 - Fabric + Forge
+        // ============================================
+        // Minecraft 1.21.x - Fabric + NeoForge
+        // (uses yarn-mappings-patch-neoforge 1.21+build.x)
+        // ============================================
+        mc("1.21.11", "fabric", "neoforge")  // Latest (Dec 2025)
+        mc("1.21.4", "fabric", "neoforge")   // Dec 2024 - The Garden Awakens
+        mc("1.21.1", "fabric", "neoforge")   // Aug 2024 - Popular LTS
+        mc("1.21", "fabric", "neoforge")     // Jun 2024 - Tricky Trials
+
+        // ============================================
+        // Minecraft 1.20.5-1.20.6 - Fabric + NeoForge
+        // (uses yarn-mappings-patch-neoforge 1.20.5/1.20.6+build.x)
+        // ============================================
+        mc("1.20.6", "fabric", "neoforge")   // Apr 2024
+        mc("1.20.5", "fabric", "neoforge")   // Apr 2024
+
+        // ============================================
+        // Minecraft 1.20.3-1.20.4 - Fabric + Forge
+        // (uses yarn-mappings-patch-forge 1.20.3/1.20.4+build.x)
+        // ============================================
+        mc("1.20.4", "fabric", "forge")      // Dec 2023
+        mc("1.20.3", "fabric", "forge")      // Dec 2023
+
+        // ============================================
+        // Minecraft 1.20-1.20.1 - Fabric + Forge
+        // (pre-NeoForge split, no patches needed)
+        // ============================================
+        mc("1.20.1", "fabric", "forge")      // Jun 2023 - Most popular modded version
+        mc("1.20", "fabric", "forge")        // Jun 2023 - Trails & Tales
+
+        // ============================================
+        // Legacy versions - Fabric + Forge
+        // ============================================
         mc("1.19.4", "fabric", "forge")
-        // 1.18.2 - Fabric + Forge
         mc("1.18.2", "fabric", "forge")
     }
     create(rootProject)

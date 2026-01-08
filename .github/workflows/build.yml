@@ -118,18 +118,22 @@ jobs:
             - Branch: `${{ github.ref_name }}`
             - Commit: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
 
-            ### Available JARs
+            ### Supported Versions
 
-            | Minecraft | Loader | File |
-            |-----------|--------|------|
-            | 1.21.11 | Fabric | `orientation-fabric-*+mc1.21.11.jar` |
-            | 1.21.11 | NeoForge | `orientation-neoforge-*+mc1.21.11.jar` |
-            | 1.20.1 | Fabric | `orientation-fabric-*+mc1.20.1.jar` |
-            | 1.20.1 | Forge | `orientation-forge-*+mc1.20.1.jar` |
-            | 1.19.4 | Fabric | `orientation-fabric-*+mc1.19.4.jar` |
-            | 1.19.4 | Forge | `orientation-forge-*+mc1.19.4.jar` |
-            | 1.18.2 | Fabric | `orientation-fabric-*+mc1.18.2.jar` |
-            | 1.18.2 | Forge | `orientation-forge-*+mc1.18.2.jar` |
+            **Minecraft 1.21.x** (Fabric + NeoForge):
+            1.21.11, 1.21.4, 1.21.1, 1.21
+
+            **Minecraft 1.20.5-1.20.6** (Fabric + NeoForge):
+            1.20.6, 1.20.5
+
+            **Minecraft 1.20-1.20.4** (Fabric + Forge):
+            1.20.4, 1.20.3, 1.20.1, 1.20
+
+            **Legacy** (Fabric + Forge):
+            1.19.4, 1.18.2
+
+            ### File Naming
+            - `critical-orientation-{loader}-{version}+mc{mc_version}.jar`
 
             ### Testing Instructions
             1. Download the JAR for your Minecraft version and loader
