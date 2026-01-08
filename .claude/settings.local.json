@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:stonecutter.kikugie.dev)",
+      "WebSearch",
+      "WebFetch(domain:stonecraft.meza.gg)",
+      "WebFetch(domain:projects.neoforged.net)",
+      "WebFetch(domain:fabricmc.net)",
+      "WebFetch(domain:meta.fabricmc.net)",
+      "WebFetch(domain:maven.neoforged.net)"
+    ]
+  }
+}
