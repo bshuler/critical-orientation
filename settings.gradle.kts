@@ -42,11 +42,12 @@ stonecutter {
         mc("1.20.5", "fabric", "neoforge")   // Apr 2024
 
         // ============================================
-        // Minecraft 1.20.3-1.20.4 - Fabric + Forge
-        // (uses yarn-mappings-patch-forge 1.20.3/1.20.4+build.x)
+        // Minecraft 1.20.3-1.20.4 - Fabric ONLY
+        // (Forge 1.20.3+ has missing dependencies like bootstrap-dev:2.0.0)
+        // (NeoForge mapping patches not available for these versions)
         // ============================================
-        mc("1.20.4", "fabric", "forge")      // Dec 2023
-        mc("1.20.3", "fabric", "forge")      // Dec 2023
+        mc("1.20.4", "fabric")               // Dec 2023
+        mc("1.20.3", "fabric")               // Dec 2023
 
         // ============================================
         // Minecraft 1.20-1.20.1 - Fabric + Forge

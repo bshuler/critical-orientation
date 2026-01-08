@@ -57,8 +57,11 @@ jobs:
             **Minecraft 1.20.5-1.20.6** (Fabric + NeoForge):
             1.20.6, 1.20.5
 
-            **Minecraft 1.20-1.20.4** (Fabric + Forge):
-            1.20.4, 1.20.3, 1.20.1, 1.20
+            **Minecraft 1.20.3-1.20.4** (Fabric only):
+            1.20.4, 1.20.3
+
+            **Minecraft 1.20-1.20.1** (Fabric + Forge):
+            1.20.1, 1.20
 
             **Legacy** (Fabric + Forge):
             1.19.4, 1.18.2
