@@ -342,18 +342,24 @@ public class OrientationKeyBind {
 
 ---
 
-## Appendix B: Version Compatibility Matrix
+## Appendix B: Version Compatibility Matrix (CURRENT - January 2026)
 
-| MC Version | Fabric | NeoForge | Forge | Java |
-|------------|--------|----------|-------|------|
-| 1.21.4 | ✅ | ✅ | ❌ | 21 |
-| 1.21.1 | ✅ | ✅ | ❌ | 21 |
-| 1.20.6 | ✅ | ✅ | ❌ | 21 |
-| 1.20.4 | ✅ | ✅ | ❌ | 17 |
-| 1.20.1 | ✅ | ❌ | ✅ | 17 |
-| 1.19.4 | ✅ | ❌ | ✅ | 17 |
-| 1.18.2 | ✅ | ❌ | ✅ | 17 |
-| 1.17.1 | ✅ | ❌ | ✅ | 16 |
+| MC Version | Fabric | NeoForge | Forge | Java | Notes |
+|------------|--------|----------|-------|------|-------|
+| 1.21.11 | ✅ | ✅ | ❌ | 21 | Latest (Dec 2025) |
+| 1.21.4 | ✅ | ✅ | ❌ | 21 | The Garden Awakens |
+| 1.21.1 | ✅ | ✅ | ❌ | 21 | Popular LTS |
+| 1.21 | ✅ | ✅ | ❌ | 21 | Tricky Trials |
+| 1.20.6 | ✅ | ✅ | ❌ | 21 | |
+| 1.20.5 | ✅ | ❌ | ❌ | 21 | NeoForge beta has Java conflicts |
+| 1.20.4 | ✅ | ❌ | ❌ | 17 | Forge missing bootstrap-dev dep |
+| 1.20.3 | ✅ | ❌ | ❌ | 17 | Forge missing bootstrap-dev dep |
+| 1.20.1 | ✅ | ❌ | ✅ | 17 | Most popular modded version |
+| 1.20 | ✅ | ❌ | ✅ | 17 | Trails & Tales |
+| 1.19.4 | ✅ | ❌ | ✅ | 17 | |
+| 1.18.2 | ✅ | ❌ | ✅ | 17 | |
+
+**Total: 21 JARs** (12 Fabric + 5 NeoForge + 4 Forge)
 
 Note: NeoForge branched from Forge at 1.20.2. Earlier versions have Forge-only support.
 
@@ -392,3 +398,133 @@ Key API transition points:
 2. ✅ **Icon path**: Fixed mod ID reference
 3. ✅ **Environment**: Set to "client" for client-side only
 4. ✅ **Entry point**: Changed to client entrypoint
+
+---
+
+## Current State (January 8, 2026)
+
+### Build Status: ✅ PASSING
+
+**Dev Release**: https://github.com/bshuler/critical-orientation/releases/tag/dev-claude-claude-md-mk408y9lxsjoeowm-5NyUs
+
+### JAR Artifacts (21 total)
+
+**Fabric (12 JARs)**:
+- critical-orientation-fabric-2.0.0+mc1.21.11.jar
+- critical-orientation-fabric-2.0.0+mc1.21.4.jar
+- critical-orientation-fabric-2.0.0+mc1.21.1.jar
+- critical-orientation-fabric-2.0.0+mc1.21.jar
+- critical-orientation-fabric-2.0.0+mc1.20.6.jar
+- critical-orientation-fabric-2.0.0+mc1.20.5.jar
+- critical-orientation-fabric-2.0.0+mc1.20.4.jar
+- critical-orientation-fabric-2.0.0+mc1.20.3.jar
+- critical-orientation-fabric-2.0.0+mc1.20.1.jar
+- critical-orientation-fabric-2.0.0+mc1.20.jar
+- critical-orientation-fabric-2.0.0+mc1.19.4.jar
+- critical-orientation-fabric-2.0.0+mc1.18.2.jar
+
+**NeoForge (5 JARs)**:
+- critical-orientation-neoforge-2.0.0+mc1.21.11.jar
+- critical-orientation-neoforge-2.0.0+mc1.21.4.jar
+- critical-orientation-neoforge-2.0.0+mc1.21.1.jar
+- critical-orientation-neoforge-2.0.0+mc1.21.jar
+- critical-orientation-neoforge-2.0.0+mc1.20.6.jar
+
+**Forge (4 JARs)**:
+- critical-orientation-forge-2.0.0+mc1.20.1.jar
+- critical-orientation-forge-2.0.0+mc1.20.jar
+- critical-orientation-forge-2.0.0+mc1.19.4.jar
+- critical-orientation-forge-2.0.0+mc1.18.2.jar
+
+### CI/CD Pipeline
+
+- **build.yml**: Triggers on push to main/master/test/dev/claude/** branches
+  - Builds all 21 JARs
+  - Runs tests on Fabric versions
+  - Creates dev/test release with all artifacts
+
+- **release.yml**: Triggers on version tags (v*)
+  - Builds all versions
+  - Publishes to CurseForge and Modrinth
+  - Creates GitHub release
+
+### Key Files Modified
+
+| File | Purpose |
+|------|---------|
+| `settings.gradle.kts` | Defines 12 MC versions × loaders |
+| `build.gradle.kts` | Stonecraft config + JAR naming |
+| `gradle.properties` | Mod metadata |
+| `versions/dependencies/*.properties` | Per-version dependency configs |
+| `.github/workflows/build.yml` | CI build + dev release |
+| `.github/workflows/release.yml` | Production release |
+
+### Known Limitations
+
+1. **MC 1.20.3/1.20.4 Forge**: Missing `net.minecraftforge:bootstrap-dev:2.0.0` dependency
+2. **MC 1.20.5 NeoForge**: Java version conflicts (NeoForge only had beta releases)
+3. **yarn-mappings-patch**: Only available for specific versions, limits some loader combinations
+
+---
+
+## Next Steps
+
+### Immediate (Before Release)
+
+1. **[ ] Configure Publishing Secrets**
+   - Add `CURSEFORGE_ID` secret to GitHub repo
+   - Add `CURSEFORGE_TOKEN` secret to GitHub repo
+   - Add `MODRINTH_ID` secret to GitHub repo
+   - Add `MODRINTH_TOKEN` secret to GitHub repo
+
+2. **[ ] Test Dev Release**
+   - Download JARs from dev release
+   - Test in Minecraft with each loader
+   - Verify keybind works (`\` key snaps direction)
+
+3. **[ ] Merge to Main**
+   - Create PR from `claude/claude-md-mk408y9lxsjoeowm-5NyUs` to `main`
+   - Review changes
+   - Merge
+
+4. **[ ] Create Production Release**
+   ```bash
+   git checkout main
+   git tag v2.0.0
+   git push origin v2.0.0
+   ```
+
+### Post-Release
+
+5. **[ ] Verify CurseForge Publication**
+   - Check all 21 files uploaded
+   - Verify version compatibility tags
+   - Update mod description if needed
+
+6. **[ ] Verify Modrinth Publication**
+   - Check all 21 files uploaded
+   - Verify loader tags
+   - Add changelog
+
+7. **[ ] Update Documentation**
+   - Update README.md with new version support
+   - Update CurseForge/Modrinth descriptions
+   - Add installation instructions per loader
+
+### Future Enhancements
+
+8. **[ ] Add More Versions** (if requested)
+   - MC 1.21.2, 1.21.3, 1.21.5+ when mapping patches available
+   - Legacy versions (1.17.1, 1.16.5) if demand exists
+
+9. **[ ] Quilt Support**
+   - Add Quilt loader builds (Fabric-compatible)
+   - Test with Quilted Fabric API
+
+10. **[ ] Configuration Options**
+    - Add config file for custom snap angles (e.g., 30° increments)
+    - Add toggle for visual/audio feedback on snap
+
+11. **[ ] Localization**
+    - Add translations for key names
+    - Community translations
