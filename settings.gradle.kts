@@ -25,23 +25,14 @@ stonecutter {
             for (loader in loaders) version("$version-$loader", version)
         }
 
-        // ============================================
-        // Minecraft 1.21.x - Fabric + NeoForge
-        // ============================================
-        mc("1.21.11", "fabric", "neoforge")  // Latest (Dec 2025)
-        mc("1.21.4", "fabric", "neoforge")   // Dec 2024 - The Garden Awakens
-        mc("1.21.1", "fabric", "neoforge")   // Aug 2024 - Popular LTS
-
-        // ============================================
-        // Minecraft 1.20.x
-        // ============================================
-        mc("1.20.4", "fabric", "neoforge")   // Dec 2023 - NeoForge stable
-        mc("1.20.1", "fabric", "forge")      // Jun 2023 - Most popular modded version
-
-        // ============================================
-        // Legacy versions - Fabric + Forge
-        // ============================================
+        // Target versions and loaders
+        // Latest (1.21.11) - Fabric + NeoForge
+        mc("1.21.11", "fabric", "neoforge")
+        // 1.20.1 - Fabric + Forge (last major Forge version before NeoForge split)
+        mc("1.20.1", "fabric", "forge")
+        // 1.19.4 - Fabric + Forge
         mc("1.19.4", "fabric", "forge")
+        // 1.18.2 - Fabric + Forge
         mc("1.18.2", "fabric", "forge")
     }
     create(rootProject)

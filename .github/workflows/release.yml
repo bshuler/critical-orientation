@@ -50,15 +50,8 @@ jobs:
             ## Critical Orientation ${{ steps.get_version.outputs.VERSION }}
 
             ### Supported Versions
-
-            **Minecraft 1.21.x** (Fabric + NeoForge):
-            1.21.11, 1.21.4, 1.21.1
-
-            **Minecraft 1.20.x** (Fabric + NeoForge):
-            1.20.4
-
-            **Minecraft 1.20.x and earlier** (Fabric + Forge):
-            1.20.1, 1.19.4, 1.18.2
+            - Minecraft 1.21.4 (Fabric, NeoForge)
+            - Minecraft 1.20.1 (Fabric, Forge)
 
             ### Downloads
             Download from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/critical-orientation) or [Modrinth](https://modrinth.com/mod/critical-orientation).
