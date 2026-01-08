@@ -32,7 +32,7 @@ jobs:
         run: ./gradlew build -x test --stacktrace
 
       - name: Run tests (latest Fabric versions)
-        run: ./gradlew :1.21.4-fabric:test :1.20.1-fabric:test || true
+        run: ./gradlew :1.21.11-fabric:test :1.20.1-fabric:test || true
 
       # Collect all JARs for release
       - name: Collect build artifacts
@@ -121,13 +121,13 @@ jobs:
             ### Supported Versions
 
             **Minecraft 1.21.x** (Fabric + NeoForge):
-            1.21.4, 1.21.3, 1.21.2, 1.21.1, 1.21
+            1.21.11, 1.21.4, 1.21.1
 
             **Minecraft 1.20.x** (Fabric + NeoForge):
-            1.20.6, 1.20.4, 1.20.2
+            1.20.4
 
-            **Minecraft 1.20.x** (Fabric + Forge):
-            1.20.1
+            **Minecraft 1.20.x and earlier** (Fabric + Forge):
+            1.20.1, 1.19.4, 1.18.2
 
             ### File naming
             - Fabric: `orientation-fabric-*+mc{VERSION}.jar`
