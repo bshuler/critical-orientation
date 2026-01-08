@@ -35,11 +35,15 @@ stonecutter {
         mc("1.21", "fabric", "neoforge")     // Jun 2024 - Tricky Trials
 
         // ============================================
-        // Minecraft 1.20.5-1.20.6 - Fabric + NeoForge
-        // (uses yarn-mappings-patch-neoforge 1.20.5/1.20.6+build.x)
+        // Minecraft 1.20.6 - Fabric + NeoForge
         // ============================================
         mc("1.20.6", "fabric", "neoforge")   // Apr 2024
-        mc("1.20.5", "fabric", "neoforge")   // Apr 2024
+
+        // ============================================
+        // Minecraft 1.20.5 - Fabric ONLY
+        // (NeoForge 1.20.5 beta has Java version conflicts)
+        // ============================================
+        mc("1.20.5", "fabric")               // Apr 2024 - short-lived version
 
         // ============================================
         // Minecraft 1.20.3-1.20.4 - Fabric ONLY
