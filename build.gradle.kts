@@ -5,7 +5,7 @@ plugins {
 }
 
 base {
-    archivesName.set("critical-orientation")
+    archivesName.set("critical-orientation-${mod.loader}")
 }
 
 modSettings {
