@@ -6,12 +6,16 @@ Critical Orientation is a multi-loader, multi-version Minecraft client-side mod.
 
 ## Supported Platforms
 
-| Minecraft Version | Fabric | NeoForge | Forge |
-|-------------------|--------|----------|-------|
-| 1.21.11 | ✅ | ✅ | ❌ |
-| 1.20.1 | ✅ | ❌ | ✅ |
-| 1.19.4 | ✅ | ❌ | ✅ |
-| 1.18.2 | ✅ | ❌ | ✅ |
+### Minecraft 1.21.x (Fabric + NeoForge)
+1.21.11, 1.21.10, 1.21.9, 1.21.7, 1.21.6, 1.21.5, 1.21.4, 1.21.3, 1.21.2, 1.21.1, 1.21
+
+### Minecraft 1.20.2+ (Fabric + NeoForge)
+1.20.6, 1.20.5, 1.20.4, 1.20.3, 1.20.2
+
+### Minecraft 1.20.1 and earlier (Fabric + Forge)
+1.20.1, 1.20
+
+**Note:** NeoForge forked from Forge in July 2023 (around MC 1.20.2), so 1.20.1 and earlier use Forge.
 
 ## Tech Stack
 
@@ -36,14 +40,13 @@ critical-orientation/
 ├── CLAUDE.md                     # AI assistant guidance (this file)
 ├── PLAN.md                       # Modernization roadmap
 ├── versions/                     # Generated version-specific builds
-│   ├── 1.21.11-fabric/
+│   ├── 1.21.11-fabric/           # MC 1.21.x uses Fabric + NeoForge
 │   ├── 1.21.11-neoforge/
-│   ├── 1.20.1-fabric/
+│   ├── ...                       # (all 1.21.x and 1.20.2+ versions)
+│   ├── 1.20.1-fabric/            # MC 1.20.1 and earlier use Fabric + Forge
 │   ├── 1.20.1-forge/
-│   ├── 1.19.4-fabric/
-│   ├── 1.19.4-forge/
-│   ├── 1.18.2-fabric/
-│   └── 1.18.2-forge/
+│   ├── 1.20-fabric/
+│   └── 1.20-forge/
 └── src/
     ├── client/java/net/critical/orientation/
     │   ├── OrientationClient.java    # Loader-specific entry point

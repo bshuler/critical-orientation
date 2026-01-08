@@ -31,8 +31,8 @@ jobs:
       - name: Build all versions and loaders
         run: ./gradlew build -x test --stacktrace
 
-      - name: Run tests (Fabric only)
-        run: ./gradlew :1.21.4-fabric:test :1.20.1-fabric:test :1.19.4-fabric:test :1.18.2-fabric:test || true
+      - name: Run tests (latest Fabric versions)
+        run: ./gradlew :1.21.11-fabric:test :1.20.1-fabric:test || true
 
       # Collect all JARs for release
       - name: Collect build artifacts
@@ -118,18 +118,21 @@ jobs:
             - Branch: `${{ github.ref_name }}`
             - Commit: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
 
-            ### Available JARs
+            ### Supported Versions
 
-            | Minecraft | Loader | File |
-            |-----------|--------|------|
-            | 1.21.11 | Fabric | `orientation-fabric-*+mc1.21.11.jar` |
-            | 1.21.11 | NeoForge | `orientation-neoforge-*+mc1.21.11.jar` |
-            | 1.20.1 | Fabric | `orientation-fabric-*+mc1.20.1.jar` |
-            | 1.20.1 | Forge | `orientation-forge-*+mc1.20.1.jar` |
-            | 1.19.4 | Fabric | `orientation-fabric-*+mc1.19.4.jar` |
-            | 1.19.4 | Forge | `orientation-forge-*+mc1.19.4.jar` |
-            | 1.18.2 | Fabric | `orientation-fabric-*+mc1.18.2.jar` |
-            | 1.18.2 | Forge | `orientation-forge-*+mc1.18.2.jar` |
+            **Minecraft 1.21.x** (Fabric + NeoForge):
+            1.21.11, 1.21.10, 1.21.9, 1.21.7, 1.21.6, 1.21.5, 1.21.4, 1.21.3, 1.21.2, 1.21.1, 1.21
+
+            **Minecraft 1.20.x** (Fabric + NeoForge):
+            1.20.6, 1.20.5, 1.20.4, 1.20.3, 1.20.2
+
+            **Minecraft 1.20.x** (Fabric + Forge):
+            1.20.1, 1.20
+
+            ### File naming
+            - Fabric: `orientation-fabric-*+mc{VERSION}.jar`
+            - NeoForge: `orientation-neoforge-*+mc{VERSION}.jar`
+            - Forge: `orientation-forge-*+mc{VERSION}.jar`
 
             ### Testing Instructions
             1. Download the JAR for your Minecraft version and loader
