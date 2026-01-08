@@ -4,6 +4,10 @@ plugins {
     id("gg.meza.stonecraft")
 }
 
+base {
+    archivesName.set("critical-orientation")
+}
+
 modSettings {
     clientOptions {
         fov = 90
