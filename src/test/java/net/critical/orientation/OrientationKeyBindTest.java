@@ -196,8 +196,8 @@ class OrientationCommonTest {
             "405, 45",      // 405 -> 45 -> 45 (NE)
             "-450, -90",    // -450 -> -90 -> -90 (West)
             "-405, -45",    // -405 -> -45 -> -45 (NW)
-            "730, 10",      // 730 -> 10 -> 0 (North)
-            "750, 30"       // 750 -> 30 -> 45 (NE)
+            "730, 0",       // 730 -> 10 -> 0 (North)
+            "750, 45"       // 750 -> 30 -> 45 (NE)
         })
         void testNormalizeAndRound(double input, double expected) {
             double normalized = OrientationCommon.normalizeHeadYaw(input);

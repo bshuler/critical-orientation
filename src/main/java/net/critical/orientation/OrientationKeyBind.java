@@ -17,9 +17,16 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
+//? if >=1.21.9 {
+import net.minecraft.util.Identifier;
+//?}
 
 public class OrientationKeyBind {
-    private static final String CATEGORY = "category.orientation.main";
+    //? if >=1.21.9 {
+    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("orientation", "main"));
+    //?} else {
+    /*private static final String CATEGORY = "category.orientation.main";
+    *///?}
 
     private static KeyBinding keyBinding;
 
