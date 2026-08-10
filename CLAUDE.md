@@ -27,7 +27,8 @@ Quilt is not built directly (documented as expected-compatible via Fabric API in
 - **Language**: Java (toolchain-selected per version: 17 through <1.20.6, 21 through <21.6, 25 from 21.6 on — see `javaVersion` logic in `build.gradle.kts`)
 - **Build System**: Gradle 9.7.0 with Stonecraft (`gg.meza.stonecraft`) + Stonecutter (`dev.kikugie.stonecutter`)
 - **Multi-Loader**: Stonecraft (Stonecutter + Architectury Loom combined)
-- **Testing**: JUnit 5
+- **Testing**: JUnit 5 + JaCoCo (100% line/branch coverage enforced on `OrientationCommon`, the
+  only genuinely headless-testable class — see "Testing" below and `PLAN.md`)
 - **JDK**: only Temurin 21 is installed on this machine. Gradle toolchains / the foojay resolver auto-download whatever JDK a given subproject's Java version needs into `~/.gradle` — never install a system JDK for this.
 
 ## Repository Structure
@@ -112,6 +113,28 @@ Full boundary-by-boundary detail with jar/bytecode evidence is in `PLAN.md`.
 ./gradlew runClient
 ```
 
+## Testing / coverage
+
+Tests run against the **active project only** (`26.2-fabric`) - this is a client mod with no
+server component, and only `OrientationCommon`'s pure yaw math is genuinely testable headless.
+`OrientationClient` and `OrientationKeyBind` touch real Minecraft/loader classes and are excluded
+from coverage (see `PLAN.md` "Test coverage (Phase 2)" for the full reasoning).
+
+```bash
+# Run tests + coverage report + coverage-bar enforcement for the active project
+./gradlew ":26.2-fabric:test" ":26.2-fabric:jacocoTestReport" ":26.2-fabric:jacocoTestCoverageVerification"
+
+# Equivalent - check/build already depend on the coverage-verification task
+./gradlew ":26.2-fabric:check"
+
+# HTML report
+open versions/26.2-fabric/build/reports/jacoco/test/html/index.html
+```
+
+The coverage bar is 100% line coverage on `OrientationCommon`, enforced by
+`jacocoTestCoverageVerification` (which `check` depends on). If you add pure logic to
+`OrientationCommon`, add real tests for it - the build will fail otherwise.
+
 ## Stonecutter Preprocessor - critical gotchas
 
 The project uses Stonecutter for conditional compilation:
@@ -166,10 +189,10 @@ source-set or build-script layout, not just the build task's exit status.
 
 ## Git / repository state
 
-- Default branch is `main` locally (renamed from `master`). The remote
-  rename and all pushes are currently **blocked**: `bshuler/critical-orientation`
-  is archived (read-only) on GitHub. See `PLAN.md` "Repository state /
-  outstanding blockers" before assuming a push will succeed.
+- Default branch is `main`, both locally and on GitHub (renamed from
+  `master`). The repo was archived (read-only) earlier in its history; it has
+  since been unarchived and pushes to `main` work normally. See `PLAN.md`
+  "Repository state / outstanding blockers" for the confirmation history.
 - Do not commit any change under `.github/workflows/` — the active `gh`
   token for this account lacks the `workflow` scope and GitHub rejects any
   push containing a workflow-file change (independent of the archive-lock

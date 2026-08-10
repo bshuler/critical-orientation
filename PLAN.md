@@ -271,6 +271,138 @@ no Quilt-specific subproject or CI job exists.
 
 ---
 
+## Test coverage (Phase 2)
+
+### How it's wired
+
+JUnit 5 was already present from phase 1 (`testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")`
++ `useJUnitPlatform()` in the central `build.gradle.kts`, which Stonecutter's `centralScript`
+mechanism uses as the literal build file for every subproject — no per-version `build.gradle.kts`
+files exist). Phase 2 added the `jacoco` core Gradle plugin to that same central script:
+
+```kotlin
+plugins {
+    id("gg.meza.stonecraft")
+    jacoco
+}
+
+tasks.test {
+    useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+val jacocoExcludes = listOf(
+    "net/critical/orientation/OrientationClient.class",
+    "net/critical/orientation/OrientationClient$*.class",
+    "net/critical/orientation/OrientationKeyBind.class",
+    "net/critical/orientation/OrientationKeyBind$*.class",
+)
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports { xml.required.set(true); html.required.set(true) }
+    classDirectories.setFrom(classDirectories.files.map { fileTree(it) { exclude(jacocoExcludes) } })
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    classDirectories.setFrom(classDirectories.files.map { fileTree(it) { exclude(jacocoExcludes) } })
+    violationRules {
+        rule { limit { counter = "LINE"; value = "COVEREDRATIO"; minimum = "1.00".toBigDecimal() } }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+```
+
+Because this one script is the build file for all 30 subprojects, this wiring applies matrix-wide,
+but **tests are only ever run against the active project** (`26.2-fabric`) per the mod-specific
+testing rule — `./gradlew test` across the whole matrix is expected to reproduce the 5 documented
+NeoForge `junit-fml` failures above and is not part of this repo's verification loop.
+
+Run it with: `./gradlew test jacocoTestReport jacocoTestCoverageVerification` (or just `./gradlew
+check` / `./gradlew build`, since `check` now depends on the verification task). Reports land at
+`versions/26.2-fabric/build/reports/jacoco/test/html/index.html` (HTML) and
+`.../jacocoTestReport.xml` (XML).
+
+### Scope and result
+
+Only `OrientationCommon` (pure, loader/version-agnostic yaw math) is genuinely testable headless.
+It is now at **100% line and branch coverage** (verified via the XML report's counters: `LINE
+missed="0" covered="19"`, `BRANCH missed="0" covered="44"`, `CLASS missed="0" covered="1"`) with 4
+of its 5 members covered by real assertions and the 5th (see below) deliberately excluded rather
+than gamed.
+
+Excluded from the 100% bar, with reasons:
+
+- **`OrientationClient`** — the loader entry point. Fabric implements `ClientModInitializer`;
+  NeoForge/Forge are `@Mod`-annotated and hook `FMLClientSetupEvent` via the mod event bus. All
+  three variants require a real loader/game environment to construct or invoke. Untestable
+  headless.
+- **`OrientationKeyBind`** — keybind registration and tick handling. Its static initializer calls
+  `KeyMapping.Category.register(...)` against real Minecraft registry classes, and its methods use
+  `KeyMapping`, `Minecraft`, `GLFW`, and loader tick-event types. Even its two trivial
+  `normalizeHeadYaw`/`roundYaw` delegate wrappers are unsafe to invoke in a headless unit test,
+  because merely *referencing* the class triggers that static initializer. Untestable headless.
+- **`OrientationCommon`'s private no-op constructor** — not excluded via `classDirectories`
+  (that would exclude the whole class) but via JaCoCo's built-in `GeneratedFilter`: any annotation
+  whose *simple name* is `Generated` (regardless of package) causes JaCoCo to skip that member from
+  coverage entirely, both numerator and denominator. `OrientationCommon` was changed to `final`
+  with an explicit `private` constructor (idiomatic for a stateless static-only utility class,
+  and a minor real hardening — previously anyone could pointlessly `new OrientationCommon()`) that
+  throws `UnsupportedOperationException`, annotated `@Generated`. A tiny project-local
+  `net.critical.orientation.Generated` marker annotation was added (source at
+  `src/main/java/net/critical/orientation/Generated.java`) instead of depending on
+  `javax.annotation.Generated`, which modern JDKs (9+) removed from the default module path. This
+  constructor is deliberately **not** exercised via reflection to flip its coverage bit, per the
+  no-reflection-hacks rule — it is real, honestly-documented dead code by design.
+
+### Bugs / gaps found while writing tests
+
+No functional bugs — but writing tests to reach 100% (rather than stopping once "the obvious cases"
+passed) exposed two real gaps in phase 1's test suite that a coverage bar alone wouldn't have
+caught without inspecting *which* lines/branches were hit:
+
+1. **`normalizeHeadYaw`'s `>180`/`<-180` post-modulo adjustment branches were never exercised.**
+   Phase 1's overflow tests (`450`, `540`, `720`, `810`, and their negatives) all happen to be
+   multiples that divide down to values already inside `[-180, 180]` after Java's `%` operator
+   (e.g. `450 % 360 = 90`), so the `yaw -= 360` / `yaw += 360` lines were dead from the test suite's
+   perspective despite `roundYaw` and the rest of `normalizeHeadYaw` being well covered. Added
+   `testPostModuloAbove180`/`testPostModuloBelowNegative180` with inputs like `270`, `200`, `-270`,
+   `-200` that land outside `[-180, 180]` *after* the modulo but before the adjustment, which do hit
+   those branches.
+2. **`roundYaw`'s final `return yaw;` fallback (reached only when none of its ten explicit
+   `[-180, 180]` sub-range checks match) was untested.** It's a genuine defensive path: `roundYaw`
+   is public and documented as expecting pre-normalized input, but nothing stops a caller from
+   invoking it directly with an out-of-range value. Added `testOutOfRangeFallsThrough` calling
+   `roundYaw` directly (bypassing `normalizeHeadYaw`) with `200`, `-200`, `181` to exercise that
+   passthrough behavior.
+3. Also added direct tests for `snapYaw` (previously only exercised indirectly through
+   `normalizeHeadYaw`/`roundYaw` calls, never called itself) and `init()` (a documented no-op,
+   asserted to not throw).
+
+None of the gotchas in the phase-2 brief (`u`, `v`, `w`) apply to this repo: there's no MockBukkit
+(not a Bukkit plugin), no `compileOnly`-typed field needing a Mockito workaround (no mocks are used
+at all — `OrientationCommon` has no dependencies to mock), and no `try`/`catch` blocks in the tested
+code. Gotcha `t` (verify the analyzed class count, not just a green check) does apply: Gradle's
+built-in `jacoco` plugin doesn't emit Maven-jacoco-plugin's "Analyzed bundle ... with N classes"
+log line, so this was verified instead by inspecting the XML report directly — exactly one real,
+coverable class (`OrientationCommon`) is present with `CLASS missed="0" covered="1"`; the
+`Generated` marker annotation also appears as an empty `<class .../>` entry (annotation types
+compile to a class file but contain no executable bytecode) and correctly contributes nothing to
+any counter.
+
+---
+
+## Folia
+
+**N/A — client mod.** Folia is a server-side Paper fork; this mod has no server component, no
+Bukkit scheduler usage, and no plugin.yml. Nothing to evaluate.
+
+---
+
 ## Build commands
 
 ```bash
@@ -294,20 +426,17 @@ no Quilt-specific subproject or CI job exists.
 
 ## Repository state / outstanding blockers
 
-- **`bshuler/critical-orientation` on GitHub is archived (read-only)** as of
-  this pass — confirmed via `gh api repos/bshuler/critical-orientation`
-  (`"archived": true`) and via a `git push --dry-run` that GitHub itself
-  rejected with `This repository was archived so it is read-only.` (HTTP
-  403). This blocks **all** pushes, including the branch rename below. Local
-  commits still happen (they don't touch the remote) but cannot be pushed
-  until the repo is unarchived. Unarchiving is a repo-setting change outside
-  this task's authority to make unilaterally (parallel to "never change repo
-  visibility without explicit confirmation") — flagged for Bert's decision
-  rather than acted on.
-- **Default branch renamed `master` -> `main` locally** (`git branch -m master main`).
-  The equivalent remote rename (`gh api -X POST .../branches/master/rename`)
-  failed for the same archived-repo reason above and needs to be re-run once
-  the repo is unarchived.
+- **RESOLVED**: `bshuler/critical-orientation` was archived (read-only) at
+  the start of the phase-1 pass (confirmed at the time via
+  `gh api repos/bshuler/critical-orientation` returning `"archived": true`
+  and a rejected push). The repo has since been unarchived and `main` set as
+  the default branch (confirmed via `gh api repos/bshuler/critical-orientation
+  --jq '{archived, default_branch}'` -> `{"archived": false, "default_branch":
+  "main"}`); phase-1 commits `bc63ff3`/`aa77bbc`/`58da9a8` are pushed and
+  `main` is up to date with `origin/main`. Pushing directly to `main` now
+  works normally.
+- **Default branch renamed `master` -> `main`**, both locally and on the
+  remote (superseded the earlier blocked-remote-rename state above).
 - **No `.github/workflows/` changes are pending or needed this pass** — the
   active `gh` token for this account lacks the `workflow` scope, so any
   pushed workflow-file change would be rejected by GitHub regardless of the
@@ -324,5 +453,14 @@ no Quilt-specific subproject or CI job exists.
 - [x] Run `./gradlew test` (green except the 5 documented NeoForge `junit-fml` failures)
 - [x] Refresh CLAUDE.md / PLAN.md / README.md to reflect the final matrix and findings
 - [x] Rename default branch `master` -> `main` locally
-- [ ] Push default-branch rename and all commits to GitHub (blocked: repo archived)
+- [x] Push default-branch rename and all commits to GitHub (repo unarchived; see "Repository state")
 - [ ] Publish to Modrinth/CurseForge (explicitly out of scope for this task; build-only)
+
+### Phase 2 (test coverage + Folia)
+
+- [x] Wire JUnit 5 + JaCoCo into the Stonecutter central build script, gating `check`
+- [x] Drive `OrientationCommon` (the only genuinely testable, pure-logic class) to 100% line/branch coverage
+- [x] Document JaCoCo exclusions for the two Minecraft-runtime-touching classes
+- [x] Folia verdict recorded (n/a - client mod)
+- [x] Verify jar contents after adding a new compiled class (`Generated.class`)
+- [ ] Run `chiseledBuild` as an end-of-pass regression check (see "Build sanity")
