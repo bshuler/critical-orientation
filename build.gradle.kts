@@ -2,6 +2,7 @@ import gg.meza.stonecraft.mod
 
 plugins {
     id("gg.meza.stonecraft")
+    jacoco
 }
 
 // Stonecraft's built-in ProcessResources expansion only provides id/name/group/description/version/
@@ -54,6 +55,49 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+// JaCoCo scope: OrientationClient (loader entry point) and OrientationKeyBind (keybind
+// registration/tick handling) both touch real Minecraft/loader classes (ClientModInitializer,
+// KeyMapping, GLFW, Minecraft, and loader lifecycle events) at class-load or call time - even
+// OrientationKeyBind's tiny normalizeHeadYaw/roundYaw delegate methods are unsafe to invoke
+// headless because merely referencing the class runs its static initializer, which calls
+// KeyMapping.Category.register(...) against real Minecraft registry classes. Both are excluded
+// here and documented in PLAN.md; only OrientationCommon (pure, loader-agnostic yaw math) is
+// in scope for the 100% line-coverage bar.
+val jacocoExcludes = listOf(
+    "net/critical/orientation/OrientationClient.class",
+    "net/critical/orientation/OrientationClient$*.class",
+    "net/critical/orientation/OrientationKeyBind.class",
+    "net/critical/orientation/OrientationKeyBind$*.class",
+)
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+    classDirectories.setFrom(classDirectories.files.map { fileTree(it) { exclude(jacocoExcludes) } })
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    classDirectories.setFrom(classDirectories.files.map { fileTree(it) { exclude(jacocoExcludes) } })
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "1.00".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 // KNOWN UPSTREAM ISSUE (not fixable from this build script - see PLAN.md "Known limitations"):
