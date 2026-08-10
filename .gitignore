@@ -24,6 +24,14 @@ run/
 logs/
 *.log
 
+# Per-subproject NeoForge/Fabric test-run directories (game run config/cache/mods generated when
+# `test`/`runClient` boots a real loader environment) - not build output under build/, but not source
+# either. versions/*/dependencies/ (tracked source config) is deliberately NOT matched by these.
+versions/*/.cache/
+versions/*/config/
+versions/*/defaultconfigs/
+versions/*/mods/
+
 # OS files
 .DS_Store
 Thumbs.db
