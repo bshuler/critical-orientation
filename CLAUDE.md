@@ -106,7 +106,7 @@ Full boundary-by-boundary detail with jar/bytecode evidence is in `PLAN.md`.
 # Reset to the project's vcsVersion before committing (convention, see PLAN.md)
 ./gradlew "Reset active project"
 
-# Run tests (expect 5 known-failing NeoForge subprojects, 1.21.4-1.21.8 - see PLAN.md)
+# Run tests (green everywhere; NeoForge 1.21.4-1.21.8 need the junit-fml exclusion in build.gradle.kts - see PLAN.md)
 ./gradlew test
 
 # Run Minecraft client (active version)

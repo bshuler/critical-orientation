@@ -100,20 +100,22 @@ tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
-// KNOWN UPSTREAM ISSUE (not fixable from this build script - see PLAN.md "Known limitations"):
 // NeoForge pins its own transitive net.neoforged.fancymodloader:junit-fml artifact per Minecraft
 // version, and versions <= 9.0.18 (pulled in by our 1.21.4 through 1.21.8 targets) contain a bug in
 // LaunchWrapper: it looks up a run-config file named "mainargs.txt" via a relative path that doesn't
-// resolve under Gradle's test-worker working directory, so `test` fails at JUnit-launcher startup with
-// "NoSuchFileException: mainargs.txt" even though compileJava/jar/build all succeed fine and the shipped
-// jar is unaffected. This was fixed upstream in junit-fml 10.0+ (confirmed via jar inspection: the
-// relative-path lookup is gone there), but forcing that fixed version alone throws
-// NoClassDefFoundError: net/neoforged/fml/startup/StartupArgs at test-launcher startup instead, because
-// junit-fml 10.0+ expects a newer net.neoforged.fml core API surface that doesn't exist in the older
-// NeoForge releases these Minecraft versions ship - the whole FML/loader family would need bumping
-// together, which isn't safe to do in isolation per-test-dependency. Affects `test`/`check` only for
-// 1.21.4-neoforge, 1.21.5-neoforge, 1.21.6-neoforge, 1.21.7-neoforge, 1.21.8-neoforge; compileJava, jar,
-// and assemble are green for all of them.
+// resolve under Gradle's test-worker working directory, so `test` fails at JUnit-launcher startup
+// with "NoSuchFileException: mainargs.txt". Forcing the upstream-fixed junit-fml 10.0+ doesn't work
+// either (NoClassDefFoundError: net/neoforged/fml/startup/StartupArgs - it needs a newer FML core
+// than these NeoForge releases ship). The actual fix: junit-fml exists to bootstrap FML for
+// *gametests*; our tests are plain pure-logic JUnit tests that need none of that, so junit-fml's
+// auto-registered LauncherSessionListener can simply be excluded from the test runtime classpath.
+// Same fix as the sibling simple-utilities-mod / ToroHealth repos, verified green across their
+// full matrices.
+if (mod.isNeoforge) {
+    configurations.named("testRuntimeClasspath") {
+        exclude(group = "net.neoforged.fancymodloader", module = "junit-fml")
+    }
+}
 
 // Forge's pack.mcmeta generation task writes into the main source set's resources output
 // without declaring that as a tracked task output, which Gradle's task validation flags as

@@ -20,10 +20,9 @@ next mod modernized from this template doesn't have to rediscover them.
 All 30 subprojects (15 Minecraft versions x up to 2 loaders) build, and their
 jars contain the correct client-side classes (verified by unzip, not just by
 watching the build succeed — see "Known limitations" for why that distinction
-matters here). `./gradlew test` passes on every subproject except the five
-NeoForge subprojects affected by the upstream `junit-fml` limitation
-documented below (`compileJava`/`jar`/`assemble`/`build` are unaffected on
-those five).
+matters here). `./gradlew test` passes on every subproject — the five NeoForge
+subprojects (1.21.4-1.21.8) that used to fail on the upstream `junit-fml` bug
+are fixed by a test-classpath exclusion (see Known limitations).
 
 ---
 
@@ -38,18 +37,14 @@ those five).
 | 1.21.11 | ✅ | ✅ | — | `Identifier` replaces `ResourceLocation` from here on |
 | 1.21.10 | ✅ | ✅ | — | |
 | 1.21.9  | ✅ | ✅ | — | `KeyMapping.Category` replaces plain `String` from here on |
-| 1.21.8  | ✅ | ✅⚠️ | — | NeoForge `test` task fails, see limitations |
-| 1.21.7  | ✅ | ✅⚠️ | — | NeoForge `test` task fails, see limitations |
-| 1.21.6  | ✅ | ✅⚠️ | — | NeoForge `test` task fails, see limitations |
-| 1.21.5  | ✅ | ✅⚠️ | — | NeoForge `test` task fails, see limitations |
-| 1.21.4  | ✅ | ✅⚠️ | — | NeoForge `test` task fails, see limitations; oldest NeoForge target |
+| 1.21.8  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
+| 1.21.7  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
+| 1.21.6  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
+| 1.21.5  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
+| 1.21.4  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations; oldest NeoForge target |
 | 1.20.1  | ✅ | — | ✅ | last Forge target using `RegisterKeyMappingsEvent` unmodified |
 | 1.19.4  | ✅ | — | ✅ | |
 | 1.18.2  | ✅ | — | ✅ | oldest target; Forge here predates `RegisterKeyMappingsEvent`, uses `ClientRegistry` instead |
-
-✅⚠️ = `compileJava`/`jar`/`assemble`/`build` all green; `test`/`check` fails
-due to an upstream NeoForge `junit-fml` bug unrelated to this mod's code (see
-Known limitations).
 
 Fabric+NeoForge is used for every MC version from 1.20.5 onward that is old
 enough to have both loaders available; Fabric+Forge is used for every version
@@ -219,23 +214,29 @@ jar-content verification (`unzip -l`) was added as a mandatory extra step.
 
 ## Known limitations
 
-### NeoForge `junit-fml` / `mainargs.txt` (test task only, MC 1.21.4-1.21.8)
+### NeoForge `junit-fml` / `mainargs.txt` (RESOLVED — was: test task failing, MC 1.21.4-1.21.8)
 
 NeoForge pins its own transitive `net.neoforged.fancymodloader:junit-fml`
 artifact per Minecraft version, and versions <=9.0.18 (pulled in by the
 1.21.4 through 1.21.8 targets) contain a bug in `LaunchWrapper`: it looks up
 a run-config file named `mainargs.txt` via a relative path that doesn't
-resolve under Gradle's test-worker working directory, so `test` fails at
+resolve under Gradle's test-worker working directory, so `test` failed at
 JUnit-launcher startup with `NoSuchFileException: mainargs.txt` even though
-`compileJava`/`jar`/`build` all succeed and the shipped jar is unaffected.
+`compileJava`/`jar`/`build` all succeeded and the shipped jar was unaffected.
 Fixed upstream in `junit-fml` 10.0+ (confirmed via jar inspection — the
 relative-path lookup is gone there), but forcing that version alone throws
 `NoClassDefFoundError: net/neoforged/fml/startup/StartupArgs` instead,
 because `junit-fml` 10.0+ expects a newer `net.neoforged.fml` core API
 surface that doesn't exist in the older NeoForge releases these Minecraft
-versions ship — the whole FML/loader family would need bumping together,
-which isn't safe to do in isolation per-test-dependency. Documented in
-`build.gradle.kts` alongside the affected subprojects list.
+versions ship.
+
+**The actual fix** (proven first in the sibling simple-utilities-mod and
+ToroHealth repos, then ported back here): `junit-fml` exists to bootstrap FML
+for *gametests*. This repo's tests are plain pure-logic JUnit tests that need
+none of that, so `junit-fml` — whose auto-registered
+`LauncherSessionListener` is what performs the failing `mainargs.txt` lookup
+— is simply excluded from `testRuntimeClasspath` on NeoForge subprojects in
+`build.gradle.kts`. All 30 subprojects' `test`/`check` now pass.
 
 ### Forge `pack.mcmeta` / `compileTestJava` task-graph ordering
 
@@ -317,10 +318,10 @@ tasks.check {
 }
 ```
 
-Because this one script is the build file for all 30 subprojects, this wiring applies matrix-wide,
-but **tests are only ever run against the active project** (`26.2-fabric`) per the mod-specific
-testing rule — `./gradlew test` across the whole matrix is expected to reproduce the 5 documented
-NeoForge `junit-fml` failures above and is not part of this repo's verification loop.
+Because this one script is the build file for all 30 subprojects, this wiring applies matrix-wide;
+since the `junit-fml` test-classpath exclusion landed (see Known limitations), `./gradlew
+chiseledBuild` runs `test`/`check` green on every cell, and the full matrix is part of the
+verification loop.
 
 Run it with: `./gradlew test jacocoTestReport jacocoTestCoverageVerification` (or just `./gradlew
 check` / `./gradlew build`, since `check` now depends on the verification task). Reports land at
@@ -415,7 +416,7 @@ Bukkit scheduler usage, and no plugin.yml. Nothing to evaluate.
 # Switch the active/vcsVersion target for local dev (never hand-edit stonecutter.gradle.kts)
 ./gradlew "Set active project to 26.2-fabric"
 
-# Run unit tests everywhere (expect 5 known NeoForge failures, see Known limitations)
+# Run unit tests everywhere (all green — the historical NeoForge junit-fml failures are fixed, see Known limitations)
 ./gradlew test
 
 # Reset active project back to vcsVersion before committing
@@ -450,7 +451,7 @@ Bukkit scheduler usage, and no plugin.yml. Nothing to evaluate.
 - [x] Extend Stonecutter matrix to all stable versions newer than 1.21.4 on fabric + neoforge
 - [x] Port code latest-first across the full 30-subproject matrix until green
 - [x] Verify jar contents (not just build status) across a representative sample
-- [x] Run `./gradlew test` (green except the 5 documented NeoForge `junit-fml` failures)
+- [x] Run `./gradlew test` (green on all 30 subprojects after the `junit-fml` test-classpath exclusion)
 - [x] Refresh CLAUDE.md / PLAN.md / README.md to reflect the final matrix and findings
 - [x] Rename default branch `master` -> `main` locally
 - [x] Push default-branch rename and all commits to GitHub (repo unarchived; see "Repository state")
