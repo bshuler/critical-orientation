@@ -135,6 +135,34 @@ The coverage bar is 100% line coverage on `OrientationCommon`, enforced by
 `jacocoTestCoverageVerification` (which `check` depends on). If you add pure logic to
 `OrientationCommon`, add real tests for it - the build will fail otherwise.
 
+### Loaded-game tests (Tier 1)
+
+`src/test/java/net/critical/orientation/LoadedGameTest.java` is different in kind
+from the rest of the suite: it runs against a **real, bootstrapped Minecraft**, not
+mocks. `net.fabricmc:fabric-loader-junit` stands a Fabric loader up inside the JUnit
+worker, which makes it legal to call `SharedConstants.tryDetectVersion()` +
+`Bootstrap.bootStrap()` in `@BeforeAll` and then assert against genuinely loaded game
+data - the real item registry, and vanilla's own `Direction.fromYRot` yaw-to-facing
+mapping.
+
+That last point is the reason the file exists. `OrientationCommonTest` proves the
+snap arithmetic is self-consistent; `LoadedGameTest` proves it agrees with the game.
+A Minecraft version that quietly changed the yaw-to-facing convention would pass the
+former and fail the latter.
+
+- Fabric cells only (`//? if fabric` guards the whole file). NeoForge's equivalent
+  bootstrap is `junit-fml`, and its supported loaded-test harness is ModDevGradle-only
+  - unavailable under Architectury Loom. See the exclusion comment in
+  `build.gradle.kts`.
+- Verified green on **all 15 Fabric cells**, 1.18.2 through 26.2. Bootstrap costs
+  ~3-7s per cell.
+- The item registry moved `Registry.ITEM` -> `BuiltInRegistries.ITEM` in 1.19.3, so
+  that one lookup carries a `//? if >=1.19.3` guard.
+
+```bash
+./gradlew ":26.2-fabric:test" --tests "*LoadedGameTest"
+```
+
 ## Stonecutter Preprocessor - critical gotchas
 
 The project uses Stonecutter for conditional compilation:

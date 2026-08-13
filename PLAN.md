@@ -492,3 +492,31 @@ Read from the JaCoCo XML report, not from whether the gate passes:
 
 A passing `check` means "no regression inside the analysed surface" — it does not
 mean the whole codebase is tested to that percentage.
+
+## Tier 1: loaded-game testing (added 2026-08-13)
+
+The coverage numbers above measure *headless* tests against pure logic. They say
+nothing about whether the mod's assumptions still hold inside a running game -
+which, until now, nothing in this repo verified at all.
+
+`net.fabricmc:fabric-loader-junit` closes that gap on the Fabric cells. It stands a
+real Fabric loader up inside the JUnit worker, so a test can call
+`SharedConstants.tryDetectVersion()` + `Bootstrap.bootStrap()` and then assert
+against genuinely loaded Minecraft data. `LoadedGameTest` uses it to check the
+snap math against vanilla's own `Direction.fromYRot` mapping rather than against
+the test's own idea of where north is.
+
+**Verified, not assumed:** `./gradlew test` runs it in all 15 Fabric cells
+(1.18.2 -> 26.2) with 3 tests each, 0 failures, 0 errors, parsed from
+`versions/*/build/test-results/test/*LoadedGameTest.xml`. Bootstrap costs 3-7s per
+cell; the full-matrix `test` task still finishes in about 70s.
+
+**What it does not cover.** This is a loaded *game*, not a loaded *client*: there
+is no window, no render pass, no player entity. Keybind registration and the
+client entry point remain untested and excluded, as documented above. Fabric's
+client gametest harness could cover those, but this mod's client surface is a
+single keybind registration - the harness would cost more to maintain than the
+line it protects.
+
+**NeoForge cells have no equivalent.** Not an oversight: NeoForge's loaded-test
+path is ModDevGradle-only. See the junit-fml note under Known limitations.

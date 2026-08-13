@@ -51,6 +51,21 @@ dependencies {
     // Testing
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Tier 1 "loaded game" testing (Fabric cells only). fabric-loader-junit
+    // stands a real Fabric loader up inside the JUnit worker, which is what
+    // makes it legal to call SharedConstants.tryDetectVersion() +
+    // Bootstrap.bootStrap() from a test and then assert against genuinely
+    // loaded Minecraft data - real registries, real Direction math - instead
+    // of mocks. Costs ~3.5s of bootstrap on the first test class.
+    //
+    // Fabric-only on purpose: NeoForge's equivalent bootstrap is junit-fml,
+    // and its supported loaded-test harness (neoForge { unitTest { ... } } +
+    // net.neoforged:testframework) is ModDevGradle-only, unavailable under
+    // Architectury Loom - see the junit-fml exclusion comment further down.
+    if (mod.isFabric) {
+        testImplementation("net.fabricmc:fabric-loader-junit:0.19.3")
+    }
 }
 
 tasks.test {
