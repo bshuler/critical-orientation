@@ -111,6 +111,18 @@ tasks.check {
 // auto-registered LauncherSessionListener can simply be excluded from the test runtime classpath.
 // Same fix as the sibling simple-utilities-mod / ToroHealth repos, verified green across their
 // full matrices.
+//
+// Caveat, recorded 2026-08-13 so nobody re-derives it: excluding junit-fml is the
+// right call *for these repos*, not a universal one. junit-fml is precisely
+// NeoForge's own loaded-test bootstrap - it is what stands FML up so a test can
+// run against a real, loaded game. NeoForge's supported loaded-test path
+// (`neoForge { unitTest { enable(); testedMod = ... } }`, the `testframework`
+// artifact, `@ExtendWith(EphemeralTestServerProvider.class)`, `runGameTestServer`)
+// is ModDevGradle-only, and these repos build on Architectury Loom via Stonecraft,
+// so that path is unavailable here regardless. Excluding junit-fml therefore costs
+// nothing today. If a cell is ever migrated to ModDevGradle, this exclusion must
+// be revisited before writing any loaded NeoForge test - it would silently disable
+// the very bootstrap such a test depends on.
 if (mod.isNeoforge) {
     configurations.named("testRuntimeClasspath") {
         exclude(group = "net.neoforged.fancymodloader", module = "junit-fml")

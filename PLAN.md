@@ -238,6 +238,20 @@ none of that, so `junit-fml` — whose auto-registered
 — is simply excluded from `testRuntimeClasspath` on NeoForge subprojects in
 `build.gradle.kts`. All 30 subprojects' `test`/`check` now pass.
 
+**What this exclusion costs (recorded 2026-08-13).** It is the right call *for
+this repo*, but it is not a universal one, and the wording above ("the actual
+fix") undersells the trade-off. `junit-fml` is precisely NeoForge's own
+*loaded-test bootstrap* — it is what stands FML up so a test can run against a
+real, loaded game. NeoForge's supported loaded-test path (`neoForge { unitTest
+{ enable(); testedMod = ... } }`, the `net.neoforged:testframework` artifact,
+`@ExtendWith(EphemeralTestServerProvider.class)` injecting a live
+`MinecraftServer`, and `gradlew runGameTestServer`) is **ModDevGradle-only**,
+and this repo builds on Architectury Loom via Stonecraft, so that path is
+unavailable here regardless of the exclusion. Excluding `junit-fml` therefore
+costs nothing today — but if a cell is ever migrated to ModDevGradle, this
+exclusion must be revisited before writing any loaded NeoForge test, because it
+would silently disable the very bootstrap such a test depends on.
+
 ### Forge `pack.mcmeta` / `compileTestJava` task-graph ordering
 
 Forge's `generatePackMCMetaJson` task writes into the main source set's
@@ -465,3 +479,16 @@ Bukkit scheduler usage, and no plugin.yml. Nothing to evaluate.
 - [x] Folia verdict recorded (n/a - client mod)
 - [x] Verify jar contents after adding a new compiled class (`Generated.class`)
 - [ ] Run `chiseledBuild` as an end-of-pass regression check (see "Build sanity")
+
+## Coverage in context (measured 2026-08-13)
+
+Read from the JaCoCo XML report, not from whether the gate passes:
+
+- **Analysed surface:** 2 of 4 compiled classes (50%).
+- **Line coverage of that surface:** 100.0% (19 lines analysed).
+- Classes outside that surface are excluded by the documented exclusion list. They
+  are not covered by any test and are not runtime-verified.
+  Measured from `critical-orientation/versions/1.18.2-fabric/build/reports/jacoco/test/jacocoTestReport.xml`.
+
+A passing `check` means "no regression inside the analysed surface" — it does not
+mean the whole codebase is tested to that percentage.
