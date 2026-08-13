@@ -35,7 +35,7 @@ Quilt is not built directly (documented as expected-compatible via Fabric API in
 
 ```
 critical-orientation/
-├── .github/workflows/            # CI - do not modify without checking gh token workflow scope (see PLAN.md)
+├── .github/workflows/            # CI - editable and pushable (token has the workflow scope as of 2026-08-13)
 │   ├── build.yml
 │   └── release.yml
 ├── build.gradle.kts              # Stonecraft build configuration (shared across all subprojects)
@@ -193,10 +193,10 @@ source-set or build-script layout, not just the build task's exit status.
   `master`). The repo was archived (read-only) earlier in its history; it has
   since been unarchived and pushes to `main` work normally. See `PLAN.md`
   "Repository state / outstanding blockers" for the confirmation history.
-- Do not commit any change under `.github/workflows/` — the active `gh`
-  token for this account lacks the `workflow` scope and GitHub rejects any
-  push containing a workflow-file change (independent of the archive-lock
-  above).
+- `.github/workflows/` changes are pushable. The `bshuler` gh token gained the
+  `workflow` OAuth scope on 2026-08-13; the older note here claiming GitHub
+  rejects any workflow-file push is obsolete. (The archive-lock history above
+  is a separate matter and also resolved.)
 - Never publish to Modrinth/CurseForge from an agent session - build-only.
 
 ## Distribution

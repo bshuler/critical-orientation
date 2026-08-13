@@ -438,11 +438,11 @@ Bukkit scheduler usage, and no plugin.yml. Nothing to evaluate.
   works normally.
 - **Default branch renamed `master` -> `main`**, both locally and on the
   remote (superseded the earlier blocked-remote-rename state above).
-- **No `.github/workflows/` changes are pending or needed this pass** — the
-  active `gh` token for this account lacks the `workflow` scope, so any
-  pushed workflow-file change would be rejected by GitHub regardless of the
-  archive status. No CI changes were identified as warranted, so nothing was
-  written to a workflow-proposal file.
+- **No `.github/workflows/` changes are pending or needed this pass** — none
+  were identified as warranted, so nothing was written to a workflow-proposal
+  file. Note the token constraint that originally motivated this bullet is
+  gone: the `bshuler` gh token gained the `workflow` OAuth scope on 2026-08-13,
+  so workflow-file changes are pushable if a future pass wants them.
 
 ## Status checklist
 
