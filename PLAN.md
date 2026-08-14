@@ -750,3 +750,39 @@ design. The landmark pillar sits 10 blocks out, comfortably inside 2 chunks.
 Verified: `compileGametestJava` green on both matrix endpoints, and a full
 local `:1.21.9-fabric:runClientGameTest` (a previously-failing cell) passes
 with the fix in place.
+
+### The render-distance fix was not enough: spawn-radius-0 (2026-08-14)
+
+The next full CI run failed the same three cells (1.21.9, 1.21.10, 1.21.11)
+even with render distance 2 — every log frozen at **"Preparing spawn area:
+16%"** for the entire 1200-tick budget. Two theories were tested in sequence:
+
+1. **CPU starvation (refuted).** `LP_NUM_THREADS=2` was added to the CI job to
+   stop llvmpipe's rasterizer pool from starving the integrated server's chunk
+   workers on the 4-vCPU runner. The env var was confirmed applied in the run
+   log — and changed nothing: identical 16% freeze for the full budget on all
+   three cells. The variable and its (wrong) causal comment were removed from
+   `build.yml`; a warning comment there now records the refutation.
+2. **The 1.21.9 spawn rework (confirmed, fixed).** 1.21.9 reworked world-spawn
+   selection: "Preparing spawn area" now prepares the chunks implied by the
+   `spawnRadius` gamerule (default 10), and the old `spawnChunkRadius` rule
+   that used to bound this work **no longer exists** (javap over mojmap
+   1.21.9 `GameRules` — no such key, no such string constant). That is far
+   more chunk work than render distance controls, and on software-GL runners
+   it outlives the budget. The tell: fabric-api fixed this itself — from the
+   5.x gametest module on, `setConsistentSettings` sets `RESPAWN_RADIUS = 0`
+   alongside the three rules the 4.x line sets (bytecode-verified in 5.1.0
+   and 6.0.0; absent from 4.1.1/4.2.13/4.3.5). Every passing 26.x cell runs
+   a 5.x/6.x module and preps spawn in ~2s; every failing cell runs 4.x.
+
+The fix backports that one setting through the API's own
+`TestWorldBuilder#adjustSettings` hook (runs after `setConsistentSettings`;
+present and signature-identical in every 4.x module, javap-verified), guarded
+to exactly `>=1.21.9 <26.1`. Two guarded forms are needed because **1.21.11
+renamed the rule and moved the class**: 1.21.9/1.21.10 use
+`net.minecraft.world.level.GameRules` (`getRule(RULE_SPAWN_RADIUS).set(0,
+null)`), 1.21.11 uses `net.minecraft.world.level.gamerules.GameRules`
+(`set(RESPAWN_RADIUS, 0, null)`). All names and signatures were verified per
+version with javap against the mojmap-mapped jars in the loom cache. This is
+the gametest file's first and only Stonecutter branch; the class doc records
+why the exception is justified.

@@ -218,10 +218,18 @@ Things that will bite you when editing it:
   before/after screenshots pixel-identical and useless. Staging now builds a gold
   pillar 10 blocks due west - west *is* yaw 90 - and the pair is shot at 67.5 then
   90. Keep the landmark if you move the screenshots.
-- **No Stonecutter branch in this file, and it should stay that way.** The five API
-  types it uses are method-identical from v4.1.1 to v6.0.0 (javap-verified). The one
-  that did change is `TestSingleplayerContext`'s
-  `getClientWorld`/`getClientLevel`/`getConnection` - avoid all three.
+- **Exactly one Stonecutter branch in this file; do not add a second lightly.** The
+  five gametest API types it uses are method-identical from v4.1.1 to v6.0.0
+  (javap-verified). The one that did change is `TestSingleplayerContext`'s
+  `getClientWorld`/`getClientLevel`/`getConnection` - avoid all three. The one
+  branch that exists zeroes the spawn radius via `adjustSettings` on
+  1.21.9-1.21.11 (two guarded forms, because 1.21.11 renamed `spawnRadius` to
+  `respawnRadius` and moved `GameRules` to its own package). It backports what
+  fabric-api >=5.x's `setConsistentSettings` does natively, and exists because
+  1.21.9's spawn rework made CI's software-GL runners blow the harness's
+  hardcoded 1200-tick world-load budget preparing the default 10-radius spawn
+  area. An `LP_NUM_THREADS` cap was tried first on a CPU-starvation theory and
+  refuted (identical 16% freeze capped and uncapped) - don't re-add it.
 - Loom here is **1.17.491**: run-config edits need the Provider API
   (`programArguments.set(...)`), not FlightHud's older `programArgs` style.
 

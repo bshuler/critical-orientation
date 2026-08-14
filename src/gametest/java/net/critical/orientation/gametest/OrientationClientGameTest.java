@@ -8,9 +8,21 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.TitleScreen;
+// These two guarded imports serve the spawn-radius adjustment in runTest (see
+// the long comment there). 1.21.9/1.21.10 still have the classic GameRules
+// (Key + IntegerValue); 1.21.11 moved gamerules to their own package with
+// GameRule<T> objects; 26.x needs neither, because fabric-api >=5.x zeroes
+// the respawn radius itself in setConsistentSettings.
+//? if >=1.21.9 <1.21.11 {
+/*import net.minecraft.world.level.GameRules;
+*///?}
+//? if >=1.21.11 <26.1 {
+/*import net.minecraft.world.level.gamerules.GameRules;
+*///?}
 import net.minecraft.world.level.block.Blocks;
 import org.lwjgl.glfw.GLFW;
 
@@ -91,10 +103,26 @@ import org.lwjgl.glfw.GLFW;
  * {@code player.isCreative()}. An unverified setup command is not a
  * convenience; it is a control that silently stops being enforced.
  *
- * <h2>One file, twelve cells, no Stonecutter branch</h2>
+ * <p>There is one game-rule write after all, and it is the exception that
+ * proves the rule: on 1.21.9-1.21.11 the spawn radius is zeroed through
+ * {@code TestWorldBuilder#adjustSettings} <em>before</em> the world opens (see
+ * the comment at the call site). It is not command staging -- it goes through
+ * the typed {@code GameRules} API, so a renamed rule is a compile error on the
+ * affected cell, never a silently swallowed command -- and it is not for the
+ * test's benefit but for the harness's world-load budget on CI. It is also
+ * exactly the setting fabric-api itself adopted into consistent settings from
+ * 5.x on, which is why the 26.x cells need nothing.
+ *
+ * <h2>One file, twelve cells, one Stonecutter branch</h2>
  *
  * <p>Every cell from 1.21.4 to 26.2 can run this, spanning
- * fabric-client-gametest-api v4.1.1 through v6.0.0. {@code ClientGameTestContext},
+ * fabric-client-gametest-api v4.1.1 through v6.0.0. This file stayed free of
+ * Stonecutter branches for as long as that was true of the code it needed; the
+ * spawn-radius adjustment above is the one exception, forced by Minecraft
+ * itself (1.21.11 renamed {@code spawnRadius} to {@code respawnRadius} and
+ * moved {@code GameRules} into its own package, so no single expression
+ * compiles on both sides of that boundary). Everything else remains
+ * branch-free: {@code ClientGameTestContext},
  * {@code FabricClientGameTest}, {@code TestWorldBuilder}, {@code TestServerContext}
  * and {@code TestInput} were checked with javap against every API jar in the
  * matrix and are method-identical across all of them. The one interface that did
@@ -200,8 +228,38 @@ public class OrientationClientGameTest implements FabricClientGameTest {
         // and 26.2 (javap-verified), so no Stonecutter branch is needed.
         context.runOnClient(client -> client.options.renderDistance().set(2));
 
-        try (TestSingleplayerContext singleplayer =
-                     context.worldBuilder().setUseConsistentSettings(true).create()) {
+        TestWorldBuilder worldBuilder = context.worldBuilder().setUseConsistentSettings(true);
+
+        // Zero the spawn radius BEFORE the world opens, on exactly the three
+        // cells that need it. 1.21.9 reworked world-spawn selection, and from
+        // then on "Preparing spawn area" prepares the chunks implied by the
+        // spawnRadius gamerule (default 10; the old spawnChunkRadius rule that
+        // used to bound this work no longer exists - javap of 1.21.9's
+        // GameRules confirms). On CI's software-GL runners that preparation
+        // reproducibly outlives the harness's hardcoded 1200-tick world-load
+        // budget: stuck at "Preparing spawn area: 16%" for the whole budget,
+        // in two consecutive runs, the second with llvmpipe capped to 2
+        // threads - which refuted the CPU-contention theory the render-
+        // distance fix above was extended with. The same cells pass on real
+        // hardware in seconds. fabric-api's own fix is in setConsistentSettings
+        // from 5.x on, which sets RESPAWN_RADIUS=0 alongside the three rules
+        // the 4.x line already sets (bytecode-verified in 5.1.0 and 6.0.0) -
+        // and that is precisely why the 26.x cells prep spawn in ~2s on the
+        // same runners. This backports that one setting through the API's own
+        // adjustSettings hook, which runs after setConsistentSettings
+        // (present and signature-identical in every 4.x module, javap-
+        // verified). Two branches because 1.21.11 renamed the rule and moved
+        // GameRules to its own package.
+        //? if >=1.21.9 <1.21.11 {
+        /*worldBuilder.adjustSettings(settings ->
+                settings.getGameRules().getRule(GameRules.RULE_SPAWN_RADIUS).set(0, null));
+        *///?}
+        //? if >=1.21.11 <26.1 {
+        /*worldBuilder.adjustSettings(settings ->
+                settings.getGameRules().set(GameRules.RESPAWN_RADIUS, 0, null));
+        *///?}
+
+        try (TestSingleplayerContext singleplayer = worldBuilder.create()) {
             singleplayer.getServer().runCommand("gamemode creative @p");
             awaitCreativeMode(context);
 
