@@ -86,7 +86,32 @@ cd critical-orientation
 | Build System | Gradle 9.7.0 + Stonecraft |
 | Multi-Version | Stonecutter |
 | Multi-Loader | Architectury Loom (via Stonecraft) |
-| Testing | JUnit 5 |
+| Testing | JUnit 5 + JaCoCo, fabric-loader-junit, fabric-client-gametest (see below) |
+
+## Testing
+
+Every build is tested at three tiers, all run by CI
+([build.yml](.github/workflows/build.yml)):
+
+1. **Unit tests + coverage gate** — JUnit 5 over the pure yaw-snapping math,
+   with a JaCoCo **100% line-coverage gate** enforced by `./gradlew check`.
+   The suite runs in **all 30 version×loader builds**, not just one.
+2. **Loaded-game tests** (`fabric-loader-junit`) — a real, bootstrapped
+   Minecraft verifies the snap math agrees with *the game's own*
+   yaw-to-facing mapping (`Direction.fromYRot`) on every Fabric cell, all 15
+   versions. A Minecraft release that quietly changed the yaw convention
+   would pass the unit tests and fail here.
+3. **Client gametests** (`fabric-client-gametest-api-v1`) — a **real
+   Minecraft client** (real window, real GL, real world, real player)
+   presses a real backslash key through vanilla's keyboard handler and
+   asserts the player's yaw, head yaw, and body yaw all snapped. This is the
+   only tier that exercises the keybind itself — and the keybind is the
+   whole mod. Runs on all 12 cells ≥ 1.21.4 in CI under a virtual display,
+   with before/after screenshots uploaded as artifacts.
+
+Negative controls were run against each tier (e.g. deleting the keybind
+registration must turn the gametest red — it does). Details, including what
+each tier can and cannot see, are in [`PLAN.md`](PLAN.md).
 
 ## License
 

@@ -718,3 +718,35 @@ result; do not infer it from the release existing.
 
 All twelve run rather than a sample of the ends: a registration that stops taking
 on exactly one version is precisely what this tier exists to catch.
+
+### CI world-load timeouts and the render-distance fix (2026-08-14)
+
+The first CI run of the twelve-cell matrix failed three cells with
+`java.lang.AssertionError: Timeout loading world`. A rerun of only the failed
+jobs separated flake from systemic: **1.21.10 passed on rerun (flake)**;
+**1.21.9 and 1.21.11 failed twice each with the identical error (systemic in
+CI)** — while both pass locally on real hardware, so the failure is bound to
+the runner environment, not the code.
+
+Root cause, read from bytecode rather than guessed: the harness's
+`ClientGameTestImpl.waitForWorldLoad` is a **hardcoded 1200-tick loop**
+(`sipush 1200` in the disassembly of fabric-client-gametest-api-v1 4.2.5,
+`~/.gradle` cache), and `TestSystemProperties` exposes no property to raise
+it — the five it does expose are ENABLED, TEST_MOD_RESOURCES_PATH,
+DISABLE_NETWORK_SYNCHRONIZER, DISABLE_JOIN_ASYNC_STACK_TRACES, and the modid
+filter. So the fix cannot be "wait longer"; it must make the world load
+faster.
+
+The fix: `OrientationClientGameTest` sets render distance to **2 chunks**
+(vanilla's floor) via `context.runOnClient(client ->
+client.options.renderDistance().set(2))` **before** the world opens. That
+cuts the initial chunk-column load from ~625 (default 12 chunks) to ~25 —
+well inside 1200 ticks even under the CI runner's software-GL llvmpipe.
+`Options#renderDistance()` returns `OptionInstance<Integer>` with an
+identical signature on 1.21.4, 1.21.9, and 26.2 (javap-verified against the
+real cached jars), so the file keeps its deliberate no-Stonecutter-branch
+design. The landmark pillar sits 10 blocks out, comfortably inside 2 chunks.
+
+Verified: `compileGametestJava` green on both matrix endpoints, and a full
+local `:1.21.9-fabric:runClientGameTest` (a previously-failing cell) passes
+with the fix in place.

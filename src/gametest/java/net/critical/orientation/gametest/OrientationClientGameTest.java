@@ -188,6 +188,18 @@ public class OrientationClientGameTest implements FabricClientGameTest {
 
         assertKeybindIsRegisteredAndBoundToBackslash(context);
 
+        // Minimum render distance BEFORE the world opens. The harness's
+        // waitForWorldLoad is a hardcoded 1200-tick loop (bytecode-read from
+        // ClientGameTestImpl, no property to raise it), and under CI's
+        // software-GL llvmpipe the default 12-chunk load reproducibly blew
+        // that budget on the 1.21.9 and 1.21.11 cells - twice each, while
+        // the same cells pass on real hardware. 2 chunks is vanilla's floor,
+        // cuts the initial load from ~625 chunk columns to ~25, and still
+        // keeps the landmark pillar (10 blocks out) comfortably in view.
+        // Options#renderDistance() is signature-identical on 1.21.4, 1.21.9
+        // and 26.2 (javap-verified), so no Stonecutter branch is needed.
+        context.runOnClient(client -> client.options.renderDistance().set(2));
+
         try (TestSingleplayerContext singleplayer =
                      context.worldBuilder().setUseConsistentSettings(true).create()) {
             singleplayer.getServer().runCommand("gamemode creative @p");
