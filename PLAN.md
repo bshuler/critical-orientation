@@ -513,10 +513,208 @@ cell; the full-matrix `test` task still finishes in about 70s.
 
 **What it does not cover.** This is a loaded *game*, not a loaded *client*: there
 is no window, no render pass, no player entity. Keybind registration and the
-client entry point remain untested and excluded, as documented above. Fabric's
-client gametest harness could cover those, but this mod's client surface is a
-single keybind registration - the harness would cost more to maintain than the
-line it protects.
+client entry point remain untested and excluded, as documented above.
+
+This paragraph used to end: *"Fabric's client gametest harness could cover those,
+but this mod's client surface is a single keybind registration - the harness would
+cost more to maintain than the line it protects."* **That was wrong, and it is
+worth saying why rather than quietly deleting it.** The reasoning mistook line
+count for risk. "A single keybind registration" is the entire mod from the user's
+point of view - it is the only thing the mod does - and it is the one line whose
+failure is invisible to every other tier in this repo. The harness turned out to
+cost one source file and one manifest. See Tier 3 below.
 
 **NeoForge cells have no equivalent.** Not an oversight: NeoForge's loaded-test
 path is ModDevGradle-only. See the junit-fml note under Known limitations.
+
+## Tier 3: client gametest (added 2026-08-14)
+
+`src/gametest/java/net/critical/orientation/gametest/OrientationClientGameTest.java`
+runs the mod inside a **real Minecraft client** - real window, real GL context,
+real world, a real player - and presses a real backslash key through vanilla's
+real keyboard handler.
+
+```bash
+unset JAVA_HOME && ./gradlew :26.2-fabric:runClientGameTest    # opens a real window
+unset JAVA_HOME && ./gradlew :1.21.4-fabric:runClientGameTest
+```
+
+### Why this tier matters more here than in the sibling repos
+
+The headless suite holds `OrientationCommon` at 100% line coverage, and Tier 1
+checks its arithmetic against vanilla's own `Direction.fromYRot`. Neither touches
+`OrientationKeyBind`, which is where the mod actually lives: the `KeyMapping`
+construction, the per-loader registration call, the client-tick subscription, the
+`consumeClick()` drain, and the three rotation writes. It is on the JaCoCo
+exclusion list for a real reason - loading the class runs a static initialiser
+against live registry classes - and Tier 1 cannot reach it either, having no
+window, no input pipeline, no tick loop and no player.
+
+The consequence, stated plainly: **delete the `ClientTickEvents.END_CLIENT_TICK`
+registration, or the `KeyMappingHelper` call, and this repo stays entirely green.**
+Thirty cells compile, thirty jars package, every headless and loaded test passes,
+and the mod does nothing when you press the key. Before this file, nothing in the
+repo could tell that build from a working one.
+
+### What it asserts, and in what order
+
+Each step guards the next from passing vacuously:
+
+1. **The mod is loaded** (`FabricLoader.isModLoaded`).
+2. **The keybind reached vanilla.** `key.orientation.snap` is present in the live
+   `Minecraft.options.keyMappings` array and its `saveString()` is
+   `key.keyboard.backslash`. Fabric's helper registers by appending to exactly
+   that array and vanilla rebuilds its key-to-mapping lookup from it, so absence
+   there *is* registration failure. Checked before the world opens so that
+   "never registered" and "registered but never ticks" stay distinguishable -
+   from the far end both look like a yaw that did not move.
+3. **Nothing snaps on its own.** Yaw 12.3, one second of real ticks, no key
+   pressed, must still read 12.3. Without this control every assertion below
+   would also pass for a mod that snapped unconditionally every tick.
+4. **The real keystroke snaps the view.** Fourteen starting yaws, one raw
+   backslash press each, asserted on the live player's `getYRot()`,
+   `getYHeadRot()` *and* `yBodyRot`.
+5. **The drain loop is idempotent.** Two presses inside one tick, so
+   `while (consumeClick())` runs twice in a single pass.
+
+### The key is pressed raw, not via the mod's own KeyMapping
+
+`TestInput` offers `pressKey(KeyMapping)`, which would be shorter and is wrong for
+this test. Handing the harness the mod's own mapping object proves the object
+exists; pressing `GLFW_KEY_BACKSLASH` as a bare keysym is what a *user* does, and
+it reaches the mapping only by travelling the whole real path -
+`KeyboardHandler.keyPress` -> `KeyMapping.click(key)` -> the static key-to-mapping
+map vanilla rebuilds from `Options.keyMappings`. A mapping constructed but never
+registered is simply not in that map and no click lands on it. That is the
+property worth testing, and it is why assertion 2 exists separately: so a
+*rebinding* regression fails with "bound to X, expected backslash" instead of a
+mysterious non-snap.
+
+Verified by bytecode, not assumed: `pressKey(InputConstants.Key)` reaches
+`KeyboardHandlerAccessor.invokeKeyPress(window.handle(), action, ...)` on every API
+version in the matrix.
+
+### Case table
+
+Chosen for the bucket edges and the wrap branches, not for round numbers:
+
+| Start | Expect | Why this one |
+|---|---|---|
+| 22.5, 67.5 | 45, 90 | inclusive lower edges - an off-by-one comparison drops them a bucket |
+| 44, 67.4, 100, 134.9, 179 | 45, 45, 90, 135, 180 | interior of each bucket |
+| -100 | -90 | negative half |
+| -157.5 | **180** | same heading as -180, different float; the mod writes the positive one |
+| 350, 730, -395 | 0, 0, -45 | outside [-180,180] entirely - vanilla does not normalise on `setYRot`, so these drive `normalizeHeadYaw` against a genuinely denormalised *live* player rather than a hand-fed double |
+| 0, 12.3 | 0, 0 | trivial identity, and the smallest real correction |
+
+All three rotation fields are checked, not just `yRot`: the mod writes head and
+body too, because writing only the camera leaves them visibly lagging, and an
+assertion on `yRot` alone would not notice if those two writes were dropped.
+
+### Staging: one command, and it is enforced
+
+The sibling repos open with six `gamerule` commands. On 26.2 all six silently
+failed for a full run - `TestServerContext#runCommand` swallows command failures
+(bytecode-verified), and 26.2 had renamed every rule to snake_case and changed
+three outright. Nothing caught it because nothing depended on it.
+
+The lesson taken here is not "port the rename", it is **do not stage what the test
+does not need**. A yaw does not care about daylight, weather, mobs or fire. So the
+staging is `gamemode creative @p` and a landmark `fill`, and *both* are confirmed
+by their observable effect rather than by having been issued:
+
+- creative mode, by waiting on `client.player.isCreative()`;
+- the landmark, by waiting until the **client** reports `GOLD_BLOCK` at the
+  expected position - which also disposes of the chunk-sync race a server-side
+  check would leave open.
+
+`runCommand` also dispatches from the world spawn rather than the player, so the
+fill is wrapped in `execute as @p at @s run`.
+
+### The screenshots, and why the first version of them was worthless
+
+The first passing run produced four screenshots of a featureless grass plain under
+a clear sky. A consistent-settings world has no landmarks, so "before snap" and
+"after snap" were pixel-for-pixel indistinguishable no matter how far the view had
+turned. That is worse than no artifact: a reviewer flips through them and comes
+away feeling informed.
+
+So the staging now builds a six-block gold pillar ten blocks **due west** - west
+*is* yaw 90, one of the eight snap targets. The pair is shot at 67.5 degrees and
+then at 90: the pillar goes from well off to the right to dead centre under the
+crosshair. Confirmed by eye on both 1.21.4 and 26.2, identical framing.
+
+The numeric assertions remain the real evidence in this tier - unlike ToroHealth,
+where the pixel count *is* the assertion. The screenshots here are for the human.
+
+### Negative controls - run, not asserted
+
+Three, each producing its own distinct and correct diagnosis:
+
+| Injected defect | Failure message |
+|---|---|
+| tick listener registered as a no-op lambda | *"pressing backslash at yaw 12.3000 left the player at yaw 12.3000 ... The yaw did not move at all, so the keystroke never reached OrientationKeyBind.onClientTick - the mapping is registered (that was asserted before the world opened), so suspect the client-tick listener registration or the consumeClick() drain."* |
+| `KeyBindingHelper.registerKeyBinding` made unreachable | *"'key.orientation.snap' is not in the live client's Options.keyMappings array ... The client did register 34 mappings: [key.attack, key.use, ...]"* |
+| `snapYaw` returning its result + 45 | *"pressing backslash at yaw 0.0000 left the player at yaw 45.0000 ... The yaw did move, so the keystroke was received and the snap ran - this is OrientationCommon's arithmetic disagreeing with the pure suite"* |
+
+Each was reverted and re-run green. Note the third: it failed on the `{0 -> 0}`
+case, which looks like a freebie that no broken mod could fail. It is not - it is
+the only case that catches an *additive* error at the origin.
+
+### Coverage: twelve cells, one un-preprocessed file
+
+`fabric-client-gametest-api-v1` first appears around fabric-api 0.106 / MC 1.21.2,
+so the twelve Fabric cells from 1.21.4 to 26.2 are eligible - spanning API v4.1.1
+through v6.0.0. The three older Fabric cells predate the API and no Forge/NeoForge
+cell has an equivalent reachable from Architectury Loom (see Tier 4 under Known
+limitations).
+
+`ClientGameTestContext`, `FabricClientGameTest`, `TestWorldBuilder`,
+`TestServerContext` and `TestInput` were checked with `javap` against every API jar
+in the matrix and are method-identical across all of them. The one interface that
+did change is `TestSingleplayerContext`, whose `getClientWorld()` became
+`getClientLevel()` at v5 and `getConnection()` at v6 - none of the three is used
+here. So the file carries **no Stonecutter branch at all**, despite the production
+code it exercises crossing three boundaries (`KeyBindingHelper` ->
+`KeyMappingHelper` at 26.1, `String` -> `KeyMapping.Category` at 1.21.9,
+`ResourceLocation` -> `Identifier` at 1.21.11).
+
+**Run locally and verified green** on six cells chosen to span every one of those
+boundaries: 1.21.4 (API 4.1.1, `String` category, `KeyBindingHelper`), 1.21.8,
+1.21.9 (`Category` + `ResourceLocation`), 1.21.11 (`Identifier`), 26.1
+(`KeyMappingHelper`), 26.2 (API 6.0.0). Each console was read for swallowed
+command failures, not just its exit code. **The other six (1.21.5, 1.21.6, 1.21.7,
+1.21.10, 26.1.1, 26.1.2) compile locally but have only been run in CI** - stated
+here rather than left to be assumed from the twelve-cell matrix.
+
+### Wiring notes
+
+Two corrections to Loom's generated run config live in `build.gradle.kts`, both
+with the reasoning inline:
+
+- Stonecraft passes `--username=developer` and Loom's gametest config passes its
+  own, and joptsimple throws `MultipleArgumentsForOptionException` on the
+  duplicate.
+- Stonecraft's `setRunDir` would leave Loom's `deleteGameTestRunDir` `Delete` task
+  pointed at the developer's repo-root `../../run` directory.
+
+This repo uses Loom **1.17.491**, which needs the Provider API
+(`programArguments.set(...)`, `runDirectory.set(...)`). The older 1.14.476 in
+FlightHud uses `programArgs`/`runDir`, and on 1.17 `programArgs.removeAll {}`
+throws `UnsupportedOperationException` from `ImmutableList.set`.
+
+`src/gametest/resources/fabric.mod.json` is required and easy to forget. Without
+it the client boots to the title screen and exits with **BUILD SUCCESSFUL** having
+run no test at all - which is exactly what the first attempt here did.
+
+### CI
+
+`.github/workflows/build.yml` gains a `client-gametest` job: all twelve eligible
+cells under `xvfb-run` with `LIBGL_ALWAYS_SOFTWARE=true`, uploading screenshots and
+logs `if: always()`. It is a separate job from `build` and deliberately does **not**
+gate the test-build release - a graphics-stack flake on a headless runner should
+not withhold jars that compiled and passed every headless test. Read the job
+result; do not infer it from the release existing.
+
+All twelve run rather than a sample of the ends: a registration that stops taking
+on exactly one version is precisely what this tier exists to catch.

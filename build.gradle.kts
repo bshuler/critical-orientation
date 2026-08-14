@@ -68,6 +68,114 @@ dependencies {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Tier 3: client gametests (a real Minecraft client, real GL context, real world)
+// ---------------------------------------------------------------------------
+//
+// This is the only tier that can answer the question this mod exists to answer:
+// when a player presses the key, does the view actually snap? Everything between
+// the keystroke and the yaw - KeyMapping construction, the per-loader registration
+// call, the client-tick listener, consumeClick() - lives in OrientationKeyBind,
+// which is on the JaCoCo exclusion list because merely loading the class runs a
+// static initializer against real Minecraft registry classes. Tier 1
+// (fabric-loader-junit) bootstraps game data but has no window, no input, no tick
+// loop and no player, so it cannot touch any of it either. The consequence is
+// stark: delete the ClientTickEvents.END_CLIENT_TICK registration, or the
+// KeyMappingHelper call, and every other tier in this repo stays green while the
+// mod does nothing at all.
+//
+// Gated `>=1.21.4` because fabric-client-gametest-api-v1 first appears around
+// fabric-api 0.106 / MC 1.21.2, so the 1.20.1/1.19.4/1.18.2 Fabric cells cannot
+// run it; and `isFabric` because NeoForge's and Forge's equivalents need
+// ModDevGradle, which this repo does not use (same underlying limitation as the
+// junit-fml note below). That leaves twelve eligible cells, 1.21.4 through 26.2,
+// spanning API v4.1.1 to v6.0.0. The test source uses only the surface those
+// versions have in common, verified with javap against every one of the API jars
+// in this matrix: ClientGameTestContext, FabricClientGameTest, TestWorldBuilder
+// and TestInput are method-identical across all of them, and the one interface
+// that did change - TestSingleplayerContext, whose getClientWorld() became
+// getClientLevel() at v5 and getConnection() at v6 - is not used here. So one
+// un-preprocessed file compiles on all twelve.
+val clientGameTestSupported = mod.isFabric &&
+    stonecutter.eval(stonecutter.current.version, ">=1.21.4")
+
+if (clientGameTestSupported) {
+    // Loom is not applied through this script's `plugins {}` block, so there is no
+    // generated `fabricApi { }` accessor; configure the extension by type.
+    extensions.configure<net.fabricmc.loom.api.fabricapi.FabricApiExtension>("fabricApi") {
+        configureTests {
+            createSourceSet.set(true)
+            modId.set("orientation-gametest")
+            // enableGameTests would wire `check` to dependsOn(runGameTest), dragging a
+            // real *server* launch into every `./gradlew check`. This is a client-only
+            // keybind mod with no server gametests, so it stays off.
+            enableGameTests.set(false)
+            enableClientGameTests.set(true)
+            // eula deliberately left at its default (false): that is Mojang's EULA and
+            // is not accepted automatically here. Only the dedicated-server variant
+            // needs it.
+        }
+    }
+
+    // Loom's `mods` container starts empty and createSourceSet adds an entry for the
+    // gametest mod, which would otherwise be the *only* classpath group - leaving the
+    // mod under test ungrouped in the dev run. Register it explicitly. Unlike the
+    // sibling EasierVillagerTrading this repo does not call splitEnvironmentSourceSets(),
+    // so there is exactly one source set to register and the generated `gametest`
+    // source set - which Loom wires against `main` - already sees every mod class.
+    extensions.configure<net.fabricmc.loom.api.LoomGradleExtensionAPI>("loom") {
+        mods.create(mod.prop("id", "orientation")).sourceSet(sourceSets["main"])
+    }
+
+    // Stonecraft configures `loom.runs.all { }`, and because that is an `all` hook it
+    // also catches the `clientGameTest` config Loom creates later. Two collisions
+    // result, both corrected here for that one run config only:
+    //
+    // 1. Stonecraft appends `--username=developer` to every client-environment run
+    //    while Loom's configureTests passes `--username Player0`. Minecraft's
+    //    joptsimple parser treats `username` as single-valued, so the client dies with
+    //    MultipleArgumentsForOptionException before the first frame. Loom's value is
+    //    kept: this is not a human's dev session. `runClient` still logs in as
+    //    `developer`.
+    //
+    // 2. The same hook calls setRunDir on every config, overwriting the
+    //    `build/run/clientGameTest` Loom had just set with the repo-root `../../run` -
+    //    the developer's own dev directory. That is destructive, not untidy:
+    //    GameTestSettings' clearRunDirectory conventions to `true` and Loom registers a
+    //    `deleteGameTestRunDir` Delete task over runConfig.getRunDir(), so launching
+    //    the gametest would wipe the developer's dev world, options and screenshots.
+    //    Restoring Loom's value also keeps the run dir per-cell, so twelve cells do not
+    //    overwrite each other's screenshots. The Delete task reads getRunDir() lazily
+    //    at realization, so correcting it here redirects the deletion too.
+    //
+    // afterEvaluate because Loom creates the run config while this script body is still
+    // executing, and Stonecraft's `all` action fires at creation time.
+    afterEvaluate {
+        extensions.configure<net.fabricmc.loom.api.LoomGradleExtensionAPI>("loom") {
+            runs.named("clientGameTest") {
+                programArguments.set(
+                    programArguments.get().filterNot { it.startsWith("--username=") }
+                )
+                runDirectory.set(layout.buildDirectory.dir("run/clientGameTest"))
+            }
+        }
+    }
+
+    // No explicit fabric-client-gametest-api-v1 dependency: Loom's configureTests adds
+    // none, but Stonecraft already puts the whole fabric-api bundle on the compile
+    // classpath and that bundle depends on every module including this one, so every
+    // cell resolves it transitively. Declaring it again would risk pinning a second
+    // version.
+
+    // Nothing in the normal build graph compiles a `gametest` source set, so a compile
+    // error there would sit undetected until someone launched the game. Compiling it is
+    // cheap and needs no display; make `check` do it. Running it stays opt-in via
+    // runClientGameTest.
+    tasks.named("check") {
+        dependsOn(tasks.named("compileGametestJava"))
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)

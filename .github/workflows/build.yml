@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Build matrix + unit/loaded tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -16,6 +17,10 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
 
+      # Java 21 is the floor, not the ceiling. Cells whose Minecraft needs a
+      # newer JDK (26.x needs 25) auto-provision it through the foojay resolver
+      # declared in settings.gradle.kts. Do not add a second setup-java for 25;
+      # that would defeat the toolchain.
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -92,16 +97,19 @@ jobs:
 
             ### Available JARs
 
-            | Minecraft | Loader | File |
-            |-----------|--------|------|
-            | 1.21.4 | Fabric | `critical-orientation-1.21.4-fabric-*.jar` |
-            | 1.21.4 | NeoForge | `critical-orientation-1.21.4-neoforge-*.jar` |
-            | 1.20.1 | Fabric | `critical-orientation-1.20.1-fabric-*.jar` |
-            | 1.20.1 | Forge | `critical-orientation-1.20.1-forge-*.jar` |
-            | 1.19.4 | Fabric | `critical-orientation-1.19.4-fabric-*.jar` |
-            | 1.19.4 | Forge | `critical-orientation-1.19.4-forge-*.jar` |
-            | 1.18.2 | Fabric | `critical-orientation-1.18.2-fabric-*.jar` |
-            | 1.18.2 | Forge | `critical-orientation-1.18.2-forge-*.jar` |
+            Every jar the matrix produces is attached below; the list is
+            generated from the build rather than written out here, because a
+            hand-maintained table goes stale the moment a version is added.
+            (It had: it named four Minecraft versions long after the matrix
+            reached fifteen.) File names are
+            `critical-orientation-<mc>-<loader>-*.jar`.
+
+            | Minecraft | Loaders |
+            |-----------|---------|
+            | 26.2, 26.1.2, 26.1.1, 26.1 | Fabric, NeoForge |
+            | 1.21.11, 1.21.10, 1.21.9, 1.21.8 | Fabric, NeoForge |
+            | 1.21.7, 1.21.6, 1.21.5, 1.21.4 | Fabric, NeoForge |
+            | 1.20.1, 1.19.4, 1.18.2 | Fabric, Forge |
 
             ### Testing Instructions
             1. Download the JAR for your Minecraft version and loader
@@ -116,3 +124,105 @@ jobs:
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Tier 3: the mod inside a real Minecraft client, headless.
+  # ---------------------------------------------------------------------------
+  #
+  # A separate job rather than a step in `build`, for two reasons. It needs an
+  # apt install and a virtual display that the build job has no use for, and
+  # twelve cells each launching a real client is far too slow to run in series
+  # behind chiseledBuild. Split out, they run concurrently and none of them
+  # blocks the jar artifacts.
+  #
+  # It deliberately does NOT gate the release steps above. Those live in the
+  # build job and publish on `chiseledBuild` alone, exactly as before - a
+  # graphics-stack flake on a headless runner should not withhold jars that
+  # compiled and passed every headless test. Read this job's result; do not
+  # infer it from the presence of a test-build release.
+  client-gametest:
+    name: Tier 3 client gametest (headless)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The twelve cells whose Fabric API bundle ships
+        # fabric-client-gametest-api-v1 (it first appears around fabric-api
+        # 0.106 / MC 1.21.2). This is the same condition build.gradle.kts
+        # enforces as `clientGameTestSupported`; the three older Fabric cells
+        # (1.20.1, 1.19.4, 1.18.2) predate the API, and no NeoForge or Forge
+        # cell has an equivalent reachable from Architectury Loom.
+        #
+        # Keeping all twelve rather than sampling the ends is deliberate. This
+        # test presses a real key through vanilla's real keyboard handler, and
+        # the code it exercises crosses three Stonecutter boundaries inside
+        # OrientationKeyBind - KeyBindingHelper -> KeyMappingHelper at 26.1,
+        # String -> KeyMapping.Category at 1.21.9, ResourceLocation ->
+        # Identifier at 1.21.11. A registration that silently stops taking on
+        # exactly one version is precisely the failure this tier exists to
+        # catch, and sampling would let it through.
+        cell:
+          - '1.21.4-fabric'
+          - '1.21.5-fabric'
+          - '1.21.6-fabric'
+          - '1.21.7-fabric'
+          - '1.21.8-fabric'
+          - '1.21.9-fabric'
+          - '1.21.10-fabric'
+          - '1.21.11-fabric'
+          - '26.1-fabric'
+          - '26.1.1-fabric'
+          - '26.1.2-fabric'
+          - '26.2-fabric'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # A real Minecraft client really launches here: real window, real GL
+      # context, real render thread. The runner has no display and no GPU.
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers \
+            libxi6 libxxf86vm1 libxrandr2 libxcursor1 libxinerama1 libxext6
+
+      - name: Run client gametest (${{ matrix.cell }})
+        env:
+          # Force llvmpipe. Without this LWJGL can pick up a partial hardware GL
+          # stack on the runner and fail at context creation rather than falling
+          # back to software.
+          LIBGL_ALWAYS_SOFTWARE: 'true'
+          MESA_GL_VERSION_OVERRIDE: '3.3'
+        run: |
+          xvfb-run -a --server-args="-screen 0 1920x1080x24" \
+            ./gradlew :${{ matrix.cell }}:runClientGameTest --stacktrace
+
+      # The assertions in this test are numeric and their failure messages are
+      # specific, so unlike the sibling repos the screenshots are not the
+      # primary evidence here - the console is. They are kept anyway because
+      # orientation-before-snap / orientation-after-snap show the gold landmark
+      # move to dead centre under the crosshair, which is the one artifact that
+      # makes "the view snapped" legible to a human at a glance.
+      - name: Upload gametest screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-gametest-${{ matrix.cell }}-${{ github.sha }}
+          path: |
+            versions/${{ matrix.cell }}/build/run/clientGameTest/screenshots/**
+            versions/${{ matrix.cell }}/build/run/clientGameTest/logs/**
+          retention-days: 14
+          if-no-files-found: warn

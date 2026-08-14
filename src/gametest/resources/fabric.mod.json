@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "orientation-gametest",
+  "version": "1.0.0",
+  "name": "Critical Orientation Client Game Test",
+  "description": "Tier 3 client gametest for Critical Orientation. Never shipped: this source set is not part of any published jar.",
+  "license": "CC0-1.0",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "net.critical.orientation.gametest.OrientationClientGameTest"
+    ]
+  },
+  "depends": {
+    "orientation": "*"
+  }
+}

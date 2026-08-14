@@ -27,8 +27,10 @@ Quilt is not built directly (documented as expected-compatible via Fabric API in
 - **Language**: Java (toolchain-selected per version: 17 through <1.20.6, 21 through <21.6, 25 from 21.6 on — see `javaVersion` logic in `build.gradle.kts`)
 - **Build System**: Gradle 9.7.0 with Stonecraft (`gg.meza.stonecraft`) + Stonecutter (`dev.kikugie.stonecutter`)
 - **Multi-Loader**: Stonecraft (Stonecutter + Architectury Loom combined)
-- **Testing**: JUnit 5 + JaCoCo (100% line/branch coverage enforced on `OrientationCommon`, the
-  only genuinely headless-testable class — see "Testing" below and `PLAN.md`)
+- **Testing**: three tiers — JUnit 5 + JaCoCo (100% line/branch coverage enforced on
+  `OrientationCommon`, the only genuinely headless-testable class), `fabric-loader-junit`
+  loaded-game tests, and a `fabric-client-gametest-api-v1` client gametest that is the only
+  thing covering `OrientationKeyBind` — see "Testing" below and `PLAN.md`
 - **JDK**: only Temurin 21 is installed on this machine. Gradle toolchains / the foojay resolver auto-download whatever JDK a given subproject's Java version needs into `~/.gradle` — never install a system JDK for this.
 
 ## Repository Structure
@@ -58,8 +60,12 @@ critical-orientation/
     │   │   ├── mods.toml             # Forge metadata (side = CLIENT)
     │   │   └── neoforge.mods.toml    # NeoForge metadata (side = CLIENT)
     │   └── assets/orientation/lang/en_us.json
-    └── test/java/net/critical/orientation/
-        └── OrientationCommonTest.java   # Unit tests against the shared, loader-agnostic logic
+    ├── test/java/net/critical/orientation/
+    │   ├── OrientationCommonTest.java   # Unit tests against the shared, loader-agnostic logic
+    │   └── LoadedGameTest.java          # Tier 1 - real bootstrapped Minecraft, Fabric cells only
+    └── gametest/                        # Tier 3 - real client, never shipped in any jar
+        ├── java/net/critical/orientation/gametest/OrientationClientGameTest.java
+        └── resources/fabric.mod.json    # MANDATORY - declares the fabric-client-gametest entrypoint
 ```
 
 **Note**: all code lives in `src/main/java` — there is no `src/client/java`.
@@ -162,6 +168,73 @@ former and fail the latter.
 ```bash
 ./gradlew ":26.2-fabric:test" --tests "*LoadedGameTest"
 ```
+
+### Client gametest (Tier 3)
+
+`src/gametest/java/net/critical/orientation/gametest/OrientationClientGameTest.java`
+runs the mod in a **real Minecraft client** - real window, real GL context, real
+world, real player - and presses a real backslash key through vanilla's real
+keyboard handler.
+
+```bash
+unset JAVA_HOME && ./gradlew :26.2-fabric:runClientGameTest   # opens a real window
+```
+
+**This is the only tier that can see `OrientationKeyBind` at all.** Unit tests and
+Tier 1 both stop at `OrientationCommon`'s arithmetic; `OrientationKeyBind` is on the
+JaCoCo exclusion list and Tier 1 has no window, no input pipeline and no player.
+Delete the `ClientTickEvents.END_CLIENT_TICK` registration or the
+`KeyMappingHelper` call and every other check in this repo still passes while the
+key does nothing. Do not remove this tier on the grounds that it covers "only a
+keybind" - that keybind is the whole mod. (`PLAN.md`'s Tier 1 section used to argue
+exactly that; it was wrong and now says so.)
+
+Asserted in this order, so no step can pass vacuously: mod loaded ->
+`key.orientation.snap` present in the live `Minecraft.options.keyMappings` and bound
+to `key.keyboard.backslash` (checked *before* the world opens, so "never registered"
+stays distinguishable from "registered but never ticks") -> nothing snaps without a
+keypress -> 14 starting yaws each snap correctly on `yRot`, `yHeadRot` **and**
+`yBodyRot` -> two presses in one tick are idempotent.
+
+Things that will bite you when editing it:
+
+- **`src/gametest/resources/fabric.mod.json` is mandatory.** Loom compiles the
+  source set without it, but the harness discovers tests through the
+  `fabric-client-gametest` entrypoint declared there. Without it the client boots to
+  the title screen, quits, and reports **BUILD SUCCESSFUL having run nothing** -
+  which is what the first attempt here did.
+- **`TestServerContext#runCommand` swallows command failures** (bytecode-verified)
+  and dispatches from world spawn, not the player. So staging is one
+  `gamemode creative @p` plus a landmark `fill` wrapped in
+  `execute as @p at @s run`, and *both* are confirmed by observable effect -
+  `player.isCreative()`, and a client-side `GOLD_BLOCK` readback - never by the
+  command having been issued. Do not add `gamerule` staging a yaw test does not need;
+  26.2 renamed those rules and the sibling repos' six silent failures are why.
+- **Press the raw keysym, not `pressKey(KeyMapping)`.** Passing the mod's own mapping
+  proves only that the object exists. `GLFW_KEY_BACKSLASH` reaches it only via
+  vanilla's real key-to-mapping map, which is rebuilt from `Options.keyMappings` - so
+  an unregistered mapping genuinely receives nothing.
+- **The world is featureless on purpose** (consistent settings), which made the first
+  before/after screenshots pixel-identical and useless. Staging now builds a gold
+  pillar 10 blocks due west - west *is* yaw 90 - and the pair is shot at 67.5 then
+  90. Keep the landmark if you move the screenshots.
+- **No Stonecutter branch in this file, and it should stay that way.** The five API
+  types it uses are method-identical from v4.1.1 to v6.0.0 (javap-verified). The one
+  that did change is `TestSingleplayerContext`'s
+  `getClientWorld`/`getClientLevel`/`getConnection` - avoid all three.
+- Loom here is **1.17.491**: run-config edits need the Provider API
+  (`programArguments.set(...)`), not FlightHud's older `programArgs` style.
+
+Twelve eligible Fabric cells (1.21.4 through 26.2; older cells predate the API).
+Six were run locally - 1.21.4, 1.21.8, 1.21.9, 1.21.11, 26.1, 26.2, chosen to span
+every Stonecutter boundary in `OrientationKeyBind` - and all twelve run in CI under
+`xvfb` in the `client-gametest` job. That job deliberately does not gate the release
+steps; read its result rather than inferring it from a test-build existing.
+
+Three negative controls were run against it and each gave its own correct diagnosis
+(no-op tick listener / unreachable registration / `snapYaw` off by 45). If you change
+the assertions, re-run controls like those - a green client gametest is very easy to
+write by accident.
 
 ## Stonecutter Preprocessor - critical gotchas
 
