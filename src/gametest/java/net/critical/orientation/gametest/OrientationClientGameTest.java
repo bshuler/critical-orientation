@@ -250,6 +250,17 @@ public class OrientationClientGameTest implements FabricClientGameTest {
         // (present and signature-identical in every 4.x module, javap-
         // verified). Two branches because 1.21.11 renamed the rule and moved
         // GameRules to its own package.
+        //
+        // CI verdict on this fix: necessary but not sufficient. It gave
+        // 1.21.9 its first-ever CI pass (spawn prep 1778 ms, same profile as
+        // the 26.x cells), and on 1.21.10/1.21.11 it demonstrably applied -
+        // their logs now reach "Loading 48 chunks for player spawn" within a
+        // second, exactly like the passing cells - but those 48 chunks then
+        // sit at zero visible progress for the remaining ~64s of budget.
+        // Byte-level diffs of the two mojmap jars show the entire chunk
+        // system, PlayerSpawnFinder and ChunkLoadCounter are identical
+        // between 1.21.9 and 1.21.10, so that residue is not a per-version
+        // code path; the watchdog below exists to catch it in the act.
         //? if >=1.21.9 <1.21.11 {
         /*worldBuilder.adjustSettings(settings ->
                 settings.getGameRules().getRule(GameRules.RULE_SPAWN_RADIUS).set(0, null));
@@ -259,7 +270,40 @@ public class OrientationClientGameTest implements FabricClientGameTest {
                 settings.getGameRules().set(GameRules.RESPAWN_RADIUS, 0, null));
         *///?}
 
+        // A world load this slow is already pathological - healthy cells load
+        // in ~2s, and the harness's timeout budget is ~65s of wall clock on
+        // the CI runners - so arm a watchdog that dumps every thread's stack
+        // into the log at 40s and again at 55s. Two dumps, because a genuine
+        // deadlock (identical stacks both times) is distinguishable from slow
+        // progress (moving stacks). This exists because the harness's own
+        // "Timeout loading world" AssertionError names no culprit, and the
+        // failing cells' logs show the server thread still printing progress
+        // lines - so whatever is stuck, it is not the thread the error fires
+        // on. Interrupted, and therefore silent, the moment the world loads.
+        Thread watchdog = new Thread(() -> {
+            org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger("orientation-gametest-watchdog");
+            for (long delayMs : new long[] {40_000L, 15_000L}) {
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException e) {
+                    return;
+                }
+                StringBuilder dump = new StringBuilder("world load still not finished - full thread dump:\n");
+                Thread.getAllStackTraces().forEach((thread, stack) -> {
+                    dump.append("  \"").append(thread.getName()).append("\" state=")
+                            .append(thread.getState()).append('\n');
+                    for (StackTraceElement frame : stack) {
+                        dump.append("      at ").append(frame).append('\n');
+                    }
+                });
+                log.warn(dump.toString());
+            }
+        }, "world-load-watchdog");
+        watchdog.setDaemon(true);
+        watchdog.start();
+
         try (TestSingleplayerContext singleplayer = worldBuilder.create()) {
+            watchdog.interrupt();
             singleplayer.getServer().runCommand("gamemode creative @p");
             awaitCreativeMode(context);
 
