@@ -228,6 +228,31 @@ public class OrientationClientGameTest implements FabricClientGameTest {
         // and 26.2 (javap-verified), so no Stonecutter branch is needed.
         context.runOnClient(client -> client.options.renderDistance().set(2));
 
+        // Kill the menu-background blur BEFORE the world opens. This is the
+        // root cause of the 1.21.9-1.21.11 world-load timeouts that survived
+        // both fixes below: 1.21.9 gave LevelLoadingScreen a blurred
+        // background (absent through 1.21.8; rewritten onto the GUI-extractor
+        // pipeline in 26.1 - javap of all three), and on CI's software-GL
+        // llvmpipe that full-resolution multi-pass blur devours each client
+        // frame. The harness couples client, server and test threads through
+        // a per-tick Phaser, so a starved client starves the server: the
+        // watchdog's thread dumps (CI run 31809485654, 1.21.10 cell) caught
+        // the server thread parked in ThreadingImpl.enterPhase - not loading
+        // chunks; every chunk worker idle - while the render thread ground
+        // through GameRenderer.processBlurEffect, in both dumps 15s apart.
+        // The 1200-tick budget then expires at whatever wall clock the
+        // collapsed frame rate yields (~65-75s observed; the budget was never
+        // wall-clock). It also explains the timeout's signature burst: the
+        // AssertionError deregisters the test thread from the Phaser, the
+        // server runs free, and chunk progress that sat at 16% for a minute
+        // jumps within 60ms. Flaky rather than deterministic because GitHub
+        // runner CPUs vary widely in llvmpipe throughput.
+        // Screen#renderBlurredBackground skips the entire blur submission
+        // when this option is < 1 (bytecode-verified on 1.21.10), and
+        // Options#menuBackgroundBlurriness() is signature-identical from
+        // 1.21.4 through 26.2 (javap of all six), so no Stonecutter branch.
+        context.runOnClient(client -> client.options.menuBackgroundBlurriness().set(0));
+
         TestWorldBuilder worldBuilder = context.worldBuilder().setUseConsistentSettings(true);
 
         // Zero the spawn radius BEFORE the world opens, on exactly the three
@@ -259,8 +284,10 @@ public class OrientationClientGameTest implements FabricClientGameTest {
         // sit at zero visible progress for the remaining ~64s of budget.
         // Byte-level diffs of the two mojmap jars show the entire chunk
         // system, PlayerSpawnFinder and ChunkLoadCounter are identical
-        // between 1.21.9 and 1.21.10, so that residue is not a per-version
-        // code path; the watchdog below exists to catch it in the act.
+        // between 1.21.9 and 1.21.10, so that residue was never a chunk-system
+        // code path at all - the watchdog below caught it in the act, and the
+        // culprit is the loading-screen blur; see the comment on
+        // menuBackgroundBlurriness above.
         //? if >=1.21.9 <1.21.11 {
         /*worldBuilder.adjustSettings(settings ->
                 settings.getGameRules().getRule(GameRules.RULE_SPAWN_RADIUS).set(0, null));
@@ -271,15 +298,18 @@ public class OrientationClientGameTest implements FabricClientGameTest {
         *///?}
 
         // A world load this slow is already pathological - healthy cells load
-        // in ~2s, and the harness's timeout budget is ~65s of wall clock on
-        // the CI runners - so arm a watchdog that dumps every thread's stack
-        // into the log at 40s and again at 55s. Two dumps, because a genuine
-        // deadlock (identical stacks both times) is distinguishable from slow
-        // progress (moving stacks). This exists because the harness's own
-        // "Timeout loading world" AssertionError names no culprit, and the
-        // failing cells' logs show the server thread still printing progress
-        // lines - so whatever is stuck, it is not the thread the error fires
-        // on. Interrupted, and therefore silent, the moment the world loads.
+        // in ~2s, and the harness's 1200-tick budget runs out at ~65-75s of
+        // wall clock on the CI runners - so arm a watchdog that dumps every
+        // thread's stack into the log at 40s and again at 55s. Two dumps,
+        // because a genuine deadlock (identical stacks both times) is
+        // distinguishable from slow progress (moving stacks). It exists
+        // because the harness's own "Timeout loading world" AssertionError
+        // names no culprit - and on its first flight (CI run 31809485654) it
+        // named one: the render thread inside the loading-screen blur, which
+        // the menuBackgroundBlurriness setting above now disables. Kept
+        // because it is free on success (interrupted, and therefore silent,
+        // the moment the world loads) and it is the only instrument that can
+        // name the culprit if a different stall ever appears.
         Thread watchdog = new Thread(() -> {
             org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger("orientation-gametest-watchdog");
             for (long delayMs : new long[] {40_000L, 15_000L}) {

@@ -230,6 +230,15 @@ Things that will bite you when editing it:
   hardcoded 1200-tick world-load budget preparing the default 10-radius spawn
   area. An `LP_NUM_THREADS` cap was tried first on a CPU-starvation theory and
   refuted (identical 16% freeze capped and uncapped) - don't re-add it.
+  CI verdict on the branch: necessary but **not sufficient** on its own - the
+  residual 1.21.9-1.21.11 flake was the loading-screen blur 1.21.9 added,
+  which collapses the client frame rate under llvmpipe and starves the
+  server through the harness's per-tick Phaser (caught red-handed by the
+  test's watchdog thread dumps, CI run 31809485654). The unguarded
+  `menuBackgroundBlurriness().set(0)` before world creation is the fix -
+  keep it, and keep the watchdog (silent on success, names the culprit if a
+  different stall ever appears). Full evidence chain: PLAN.md "CI verdict on
+  spawn-radius-0" and "Root cause: the 1.21.9 loading-screen blur".
 - Loom here is **1.17.491**: run-config edits need the Provider API
   (`programArguments.set(...)`), not FlightHud's older `programArgs` style.
 

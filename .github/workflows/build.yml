@@ -210,9 +210,13 @@ jobs:
           # 2 threads, on a CPU-starvation theory of the 1.21.9-1.21.11
           # world-load timeouts) and refuted: the capped run froze at
           # "Preparing spawn area: 16%" for the whole budget, identically to
-          # the uncapped one. The real cause was the 1.21.9 spawn rework
-          # preparing the full spawnRadius area; the fix is the per-version
-          # spawn-radius-0 world setting in OrientationClientGameTest.
+          # the uncapped one. The real causes were both in-game and both are
+          # fixed in OrientationClientGameTest: 1.21.9's spawn rework
+          # (spawn-radius-0 gamerule) and 1.21.9's loading-screen blur, which
+          # collapsed the llvmpipe frame rate and starved the server through
+          # the gametest Phaser (menuBackgroundBlurriness=0). Evidence chain:
+          # PLAN.md "CI verdict on spawn-radius-0" and "Root cause: the
+          # 1.21.9 loading-screen blur".
         run: |
           xvfb-run -a --server-args="-screen 0 1920x1080x24" \
             ./gradlew :${{ matrix.cell }}:runClientGameTest --stacktrace

@@ -763,7 +763,8 @@ even with render distance 2 — every log frozen at **"Preparing spawn area:
    log — and changed nothing: identical 16% freeze for the full budget on all
    three cells. The variable and its (wrong) causal comment were removed from
    `build.yml`; a warning comment there now records the refutation.
-2. **The 1.21.9 spawn rework (confirmed, fixed).** 1.21.9 reworked world-spawn
+2. **The 1.21.9 spawn rework (confirmed — but see the CI verdict below;
+   the fix cured only 1.21.9).** 1.21.9 reworked world-spawn
    selection: "Preparing spawn area" now prepares the chunks implied by the
    `spawnRadius` gamerule (default 10), and the old `spawnChunkRadius` rule
    that used to bound this work **no longer exists** (javap over mojmap
@@ -786,3 +787,91 @@ null)`), 1.21.11 uses `net.minecraft.world.level.gamerules.GameRules`
 version with javap against the mojmap-mapped jars in the loom cache. This is
 the gametest file's first and only Stonecutter branch; the class doc records
 why the exception is justified.
+
+### CI verdict on spawn-radius-0: necessary but not sufficient (2026-08-14)
+
+Run 31806742503 split the three cells:
+
+- **1.21.9 passed** — its first-ever CI pass. Spawn prep "Time elapsed:
+  1778 ms", the same fast profile as every 26.x cell. The fix genuinely
+  works there.
+- **1.21.10 and 1.21.11 still failed**, but with a *changed* signature that
+  proves the fix applied: both logs now reach "Loading 48 chunks for player
+  spawn" within a second of world creation (pre-fix, that stage was never
+  reached inside the budget), exactly like every passing cell — the passing
+  1.21.9 and 26.x logs show the identical "Loading 48 chunks" line, done
+  ~1s later. On the failing cells those same 48 chunks then make **zero
+  visible progress for the remaining ~64 s**.
+
+What that rules out, all bytecode-verified against the mojmap jars:
+
+- Not a per-version vanilla code path. Between passing 1.21.9 and failing
+  1.21.10, only 47 classes differ in the whole of `net/minecraft/**`, none
+  of them chunk-system (`MinecraftServer`'s diffs are profiling/constant-pool
+  only; the task pump — `pollTaskInternal`, `waitUntilNextTick`,
+  `managedBlock`, `haveTime` — is semantically identical). `PlayerSpawnFinder`
+  and `ChunkLoadCounter` are also semantically identical from 1.21.9 through
+  26.1 (26.1 differs only in `RandomSource.createThreadLocalInstance()` and a
+  `toLong`→`pack` rename).
+- Not the gametest module: 1.21.10 runs the same 4.2.13 module as the
+  passing 1.21.9 (build-hash suffix differs only).
+- Not runner-speed variance alone: 26.x cells run the identical 48-chunk
+  stage in ~1.7 s on the same runners in **every** run, while
+  1.21.10/1.21.11 hung in 8 of 9 samples — yet 1.21.9's run-3 pass shows
+  the hang is probabilistic on the 1.21.x cells, i.e. a race.
+- An older failing log (run 31804837561, 1.21.11) shows the smoking-gun
+  timing: frozen for 65 s, then the moment the harness timeout fired,
+  progress raced 16%→29% within 60 ms. The server was *stuck*, not slow.
+
+Since no code diff can explain it, the next step was runtime evidence:
+commit 2328e2b arms a watchdog thread before `worldBuilder.create()` that
+logs a full JVM thread dump at 40 s and 55 s of world load (silent on
+healthy loads; verified silent on a green local 1.21.10 run). Two dumps
+distinguish a deadlock (identical stacks) from starvation (moving stacks).
+
+### Root cause: the 1.21.9 loading-screen blur on software GL (2026-08-14)
+
+The watchdog's first flight (run 31809485654) closed the case. Eleven of
+twelve cells passed — including 1.21.9 **and** 1.21.11, further proof of
+the race — and the one failure (1.21.10, job 94796374723) contains both
+dumps, 15 s apart and effectively identical:
+
+- **Server thread**: parked in `ThreadingImpl.enterPhase` — the fabric
+  gametest API's per-tick Phaser — inside its `preRunTasks` hook. Not in
+  the chunk system at all.
+- **Test thread**: parked at the same Phaser inside `waitForWorldLoad`.
+- **Every Worker-Main chunk thread**: idle in `ForkJoinPool.awaitWork`.
+- **Render thread**: RUNNABLE inside `GameRenderer.processBlurEffect` →
+  `PostChain.process` → `glDrawArrays` — the GUI background-blur post
+  shader, in both dumps.
+
+So the "hang" was never chunk loading. The harness couples client, server
+and test threads through one Phaser per tick; the client's frame time was
+being devoured by a full-resolution multi-pass blur under llvmpipe, so the
+server spent nearly all wall clock parked at the barrier and the 48 spawn
+chunks starved. The 1200-tick budget is counted in *ticks*, so it expires
+at whatever wall clock the collapsed frame rate yields — the observed
+"~65-75 s budget" was never wall-clock. It also explains the smoking-gun
+burst: the timeout's AssertionError deregisters the test thread from the
+Phaser, the server runs free, and 16%→29% happens in 60 ms.
+
+Why exactly these versions (all javap-verified):
+
+- ≤1.21.8: `LevelLoadingScreen` has no blur → cells always pass.
+- 1.21.9–1.21.11: 1.21.9 gave `LevelLoadingScreen` a blurred background
+  (`renderBlurredBackground` in its render path) → flaky, because GitHub
+  runner CPUs vary widely in llvmpipe throughput; fast runners still fit
+  1200 ticks, slow ones don't.
+- 26.x: blur moved onto the rewritten GUI-extractor pipeline
+  (`extractBlurredBackground`), which doesn't collapse the frame rate →
+  cells always pass. (fabric's `setConsistentSettings` never touches blur
+  in any module version — 26.x's immunity is vanilla-side.)
+
+The fix: `Screen#renderBlurredBackground` skips the entire blur submission
+when `menuBackgroundBlurriness < 1` (bytecode-verified on 1.21.10), and
+`Options#menuBackgroundBlurriness()` is signature-identical from 1.21.4
+through 26.2 — so one unguarded
+`context.runOnClient(client -> client.options.menuBackgroundBlurriness().set(0))`
+before world creation disables it everywhere. The watchdog stays: free on
+success, and the only instrument that names a culprit if a different stall
+ever appears.
