@@ -4,7 +4,7 @@
 
 Critical Orientation is a multi-loader, multi-version Minecraft client-side mod. It allows players to snap their facing direction to the nearest cardinal or intercardinal point (N, NE, E, SE, S, SW, W, NW) with a keybind. This is primarily useful for precise ice boat placement.
 
-This repo is **THE HOUSE TEMPLATE** for keeping all of Bert's Minecraft mods
+This repo is **THE HOUSE TEMPLATE** for keeping all of Human's Minecraft mods
 building on every modern Minecraft version and loader, latest first. See
 `PLAN.md` for the full porting history, Stonecutter mechanics learned while
 building this matrix, and known limitations — read it before porting another

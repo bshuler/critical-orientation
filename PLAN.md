@@ -3,7 +3,7 @@
 ## Executive Summary
 
 Critical Orientation is designated **THE HOUSE TEMPLATE** for the broader
-program of keeping every one of Bert's Minecraft mods building on all modern
+program of keeping every one of Human's Minecraft mods building on all modern
 Minecraft versions and loaders, latest first. This document tracks the
 modernization of this repo to that standard and records the porting notes,
 Stonecutter mechanics, and known limitations discovered along the way so the
