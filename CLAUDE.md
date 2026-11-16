@@ -12,13 +12,13 @@ mod from this template or extending this matrix further.
 
 ## Supported Platforms
 
-15 Minecraft versions, up to 2 loaders each = 30 subprojects. Full matrix
+19 Minecraft versions, 2 loaders each = 38 subprojects. Full matrix
 with per-cell status and known caveats is in `PLAN.md`. Summary:
 
 | Range | Loaders |
 |-------|---------|
-| 1.18.2 - 1.20.1 | Fabric + Forge |
-| 1.21.4 - 26.2 (latest stable) | Fabric + NeoForge |
+| 1.18.2 - 1.20.4 | Fabric + Forge |
+| 1.20.6 - 26.3 (latest stable) | Fabric + NeoForge |
 
 Quilt is not built directly (documented as expected-compatible via Fabric API in `PLAN.md`).
 

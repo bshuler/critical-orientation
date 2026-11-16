@@ -51,8 +51,11 @@ stonecutter {
         mc("1.21.6", "fabric", "neoforge")
         mc("1.21.5", "fabric", "neoforge")
         mc("1.21.4", "fabric", "neoforge")
+        mc("1.21.1", "fabric", "neoforge")
+        mc("1.20.6", "fabric", "neoforge")
 
-        // 1.20.1 - Fabric + Forge (last major Forge version before NeoForge split)
+        // 1.20.4 & 1.20.1 - Fabric + Forge
+        mc("1.20.4", "fabric", "forge")
         mc("1.20.1", "fabric", "forge")
         // 1.19.4 - Fabric + Forge
         mc("1.19.4", "fabric", "forge")

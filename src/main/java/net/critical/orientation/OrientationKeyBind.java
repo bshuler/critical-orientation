@@ -41,8 +41,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 //? if <26.3 {
-/*import org.lwjgl.glfw.GLFW;
-*///?}
+import org.lwjgl.glfw.GLFW;
+//?}
 // KeyMapping's 4th constructor argument changed from a plain String to a proper
 // KeyMapping.Category record type starting at MC 1.21.9 (confirmed via javap across the
 // full version matrix: 1.21.4-1.21.8 take String; 1.21.9 onward take KeyMapping.Category).
@@ -73,12 +73,12 @@ public class OrientationKeyBind {
         keyBinding = new KeyMapping(
                 "key.orientation.snap",
                 //? if >=26.3 {
-                InputConstants.Type.KEYBOARD,
+                /*InputConstants.Type.KEYBOARD,
                 InputConstants.KEY_BACKSLASH,
-                //?} else {
-                /*InputConstants.Type.KEYSYM,
+                *///?} else {
+                InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_BACKSLASH,
-                *///?}
+                //?}
                 CATEGORY
         );
 

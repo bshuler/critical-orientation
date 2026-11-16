@@ -25,8 +25,8 @@ import net.minecraft.client.gui.screens.TitleScreen;
 *///?}
 import net.minecraft.world.level.block.Blocks;
 //? if <26.3 {
-/*import org.lwjgl.glfw.GLFW;
-*///?}
+import org.lwjgl.glfw.GLFW;
+//?}
 
 /**
  * Tier 3: this mod running inside a <strong>real Minecraft client</strong> --
@@ -636,9 +636,9 @@ public class OrientationClientGameTest implements FabricClientGameTest {
      */
     private static void pressSnapKey(ClientGameTestContext context) {
         //? if >=26.3 {
-        context.getInput().pressKey(InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_BACKSLASH));
-        //?} else {
-        /*context.getInput().pressKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_BACKSLASH));
-        *///?}
+        /*context.getInput().pressKey(InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_BACKSLASH));
+        *///?} else {
+        context.getInput().pressKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_BACKSLASH));
+        //?}
     }
 }

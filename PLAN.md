@@ -30,7 +30,8 @@ are fixed by a test-classpath exclusion (see Known limitations).
 
 | Minecraft | Fabric | NeoForge | Forge | Notes |
 |-----------|:------:|:--------:|:-----:|-------|
-| 26.2   | ✅ | ✅ | — | newest stable at time of writing (calendar-versioned) |
+| 26.3   | ✅ | ✅ | — | newest stable (calendar-versioned) |
+| 26.2   | ✅ | ✅ | — | |
 | 26.1.2 | ✅ | ✅ | — | |
 | 26.1.1 | ✅ | ✅ | — | |
 | 26.1   | ✅ | ✅ | — | |
@@ -41,8 +42,11 @@ are fixed by a test-classpath exclusion (see Known limitations).
 | 1.21.7  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
 | 1.21.6  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
 | 1.21.5  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
-| 1.21.4  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations; oldest NeoForge target |
-| 1.20.1  | ✅ | — | ✅ | last Forge target using `RegisterKeyMappingsEvent` unmodified |
+| 1.21.4  | ✅ | ✅ | — | NeoForge `test` needs the `junit-fml` exclusion, see limitations |
+| 1.21.1  | ✅ | ✅ | — | |
+| 1.20.6  | ✅ | ✅ | — | oldest NeoForge target |
+| 1.20.4  | ✅ | — | ✅ | |
+| 1.20.1  | ✅ | — | ✅ | last major 1.20.1 Forge target |
 | 1.19.4  | ✅ | — | ✅ | |
 | 1.18.2  | ✅ | — | ✅ | oldest target; Forge here predates `RegisterKeyMappingsEvent`, uses `ClientRegistry` instead |
 
