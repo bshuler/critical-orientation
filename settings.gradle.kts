@@ -36,6 +36,7 @@ stonecutter {
         // at the NeoForge split (1.20.2).
 
         // Current (unobfuscated, official mappings)
+        mc("26.3", "fabric", "neoforge")
         mc("26.2", "fabric", "neoforge")
         mc("26.1.2", "fabric", "neoforge")
         mc("26.1.1", "fabric", "neoforge")
